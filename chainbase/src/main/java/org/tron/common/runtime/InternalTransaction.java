@@ -96,7 +96,8 @@ public class InternalTransaction {
       this.value = contract.getNewContract().getCallValue();
       this.data = contract.getNewContract().getBytecode().toByteArray();
       this.tokenInfo.put(String.valueOf(contract.getTokenId()), contract.getCallTokenValue());
-    } else if (trxType == TrxType.TRX_CONTRACT_CALL_TYPE) {
+    } else if (trxType == TrxType.TRX_CONTRACT_CALL_TYPE
+        || trxType == TrxType.TRX_CONTRACT_BLOB_TYPE) {
       TriggerSmartContract contract = ContractCapsule.getTriggerContractFromTransaction(trx);
       if (contract == null) {
         throw new ContractValidateException("Invalid TriggerSmartContract Protocol");
@@ -266,6 +267,7 @@ public class InternalTransaction {
     TRX_PRECOMPILED_TYPE,
     TRX_CONTRACT_CREATION_TYPE,
     TRX_CONTRACT_CALL_TYPE,
+    TRX_CONTRACT_BLOB_TYPE,
     TRX_UNKNOWN_TYPE,
   }
 

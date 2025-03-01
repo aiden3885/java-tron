@@ -21,6 +21,7 @@ import com.google.protobuf.ByteString;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -146,6 +147,9 @@ public class Program {
   @Getter
   @Setter
   private long callPenaltyEnergy;
+  @Getter
+  @Setter
+  private List<byte[]> versionedHashes;
 
   public Program(byte[] ops, byte[] codeAddress, ProgramInvoke programInvoke,
                  InternalTransaction internalTransaction) {

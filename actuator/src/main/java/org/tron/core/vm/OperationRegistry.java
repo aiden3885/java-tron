@@ -663,6 +663,7 @@ public class OperationRegistry {
 
   public static void appendCancunOperations(JumpTable table) {
     BooleanSupplier proposal = VMConfig::allowTvmCancun;
+    BooleanSupplier blobProposal = VMConfig::allow4844;
 
     table.set(new Operation(
         Op.TLOAD, 1, 1,
@@ -681,5 +682,17 @@ public class OperationRegistry {
         EnergyCost::getMCopyCost,
         OperationActions::mCopyAction,
         proposal));
+
+    table.set(new Operation(
+        Op.BLOBAHASH, 1, 1,
+        EnergyCost::getVeryLowTierCost,
+        OperationActions::blobHashAction,
+        blobProposal));
+
+    table.set(new Operation(
+        Op.BLOBBASEFEE, 0, 1,
+        EnergyCost::getBaseTierCost,
+        OperationActions::blobBaseFeeAction,
+        blobProposal));
   }
 }

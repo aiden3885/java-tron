@@ -1,5 +1,6 @@
 package org.tron.core.vm.program.invoke;
 
+import static org.tron.common.runtime.InternalTransaction.TrxType.TRX_CONTRACT_BLOB_TYPE;
 import static org.tron.common.runtime.InternalTransaction.TrxType.TRX_CONTRACT_CALL_TYPE;
 import static org.tron.common.runtime.InternalTransaction.TrxType.TRX_CONTRACT_CREATION_TYPE;
 import static org.tron.common.utils.WalletUtil.generateContractAddress;
@@ -65,7 +66,7 @@ public class ProgramInvokeFactory {
           tokenValue, tokenId, data, lastHash, coinbase, timestamp, number, deposit, vmStartInUs,
           vmShouldEndInUs, energyLimit);
 
-    } else if (trxType == TRX_CONTRACT_CALL_TYPE) {
+    } else if (trxType == TRX_CONTRACT_CALL_TYPE || trxType == TRX_CONTRACT_BLOB_TYPE) {
       TriggerSmartContract contract = ContractCapsule
           .getTriggerContractFromTransaction(tx);
       /***         ADDRESS op       ***/
