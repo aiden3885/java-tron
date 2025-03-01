@@ -1382,6 +1382,12 @@ public class Wallet {
         .setValue(dbManager.getDynamicPropertiesStore().getAllowTvmCancun())
         .build());
 
+    builder.addChainParameter(Protocol.ChainParameters.ChainParameter.newBuilder()
+            .setKey("getAllow4844")
+            .setValue(dbManager.getDynamicPropertiesStore().getAllow4844())
+            .build());
+
+
     return builder.build();
   }
 

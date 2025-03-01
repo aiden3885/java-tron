@@ -230,6 +230,9 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
 
   private static final byte[] ALLOW_TVM_CANCUN = "ALLOW_TVM_CANCUN".getBytes();
 
+  private static final byte[] ALLOW_4844 = "ALLOW_4844".getBytes();
+
+
   @Autowired
   private DynamicPropertiesStore(@Value("properties") String dbName) {
     super(dbName);
@@ -2931,6 +2934,18 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
         .map(BytesCapsule::getData)
         .map(ByteArray::toLong)
         .orElse(CommonParameter.getInstance().getAllowTvmCancun());
+  }
+
+  public void saveAllow4844(long allow4844) {
+    this.put(ALLOW_4844,
+            new BytesCapsule(ByteArray.fromLong(allow4844)));
+  }
+
+  public long getAllow4844() {
+    return Optional.ofNullable(getUnchecked(ALLOW_4844))
+            .map(BytesCapsule::getData)
+            .map(ByteArray::toLong)
+            .orElse(CommonParameter.getInstance().getAllow4844());
   }
 
   private static class DynamicResourceProperties {

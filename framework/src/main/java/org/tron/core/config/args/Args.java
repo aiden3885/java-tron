@@ -244,6 +244,7 @@ public class Args extends CommonParameter {
     PARAMETER.allowStrictMath = 0;
     PARAMETER.consensusLogicOptimization = 0;
     PARAMETER.allowTvmCancun = 0;
+    PARAMETER.allow4844 = 0;
   }
 
   /**
@@ -1270,6 +1271,10 @@ public class Args extends CommonParameter {
     PARAMETER.allowTvmCancun =
         config.hasPath(Constant.COMMITTEE_ALLOW_TVM_CANCUN) ? config
             .getInt(Constant.COMMITTEE_ALLOW_TVM_CANCUN) : 0;
+
+    PARAMETER.allowTvmCancun =
+            config.hasPath(Constant.COMMITTEE_ALLOW_4844) ? config
+                    .getInt(Constant.COMMITTEE_ALLOW_4844) : 0;
 
     logConfig();
   }

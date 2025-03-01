@@ -824,6 +824,21 @@ public class ProposalUtil {
         }
         break;
       }
+      case ALLOW_4844: {
+        if (!forkController.pass(ForkBlockVersionEnum.VERSION_4_8_0)) {
+          throw new ContractValidateException(
+                  "Bad chain parameter id [ALLOW_4844]");
+        }
+        if (dynamicPropertiesStore.getAllow4844() == 1) {
+          throw new ContractValidateException(
+                  "[ALLOW_4844] has been valid, no need to propose again");
+        }
+        if (value != 1) {
+          throw new ContractValidateException(
+                  "This value[Allow_4844] is only allowed to be 1");
+        }
+        break;
+      }
       default:
         break;
     }
@@ -904,8 +919,9 @@ public class ProposalUtil {
     ALLOW_ENERGY_ADJUSTMENT(81), // 0, 1
     MAX_CREATE_ACCOUNT_TX_SIZE(82), // [500, 10000]
     ALLOW_TVM_CANCUN(83), // 0, 1
+    ALLOW_4844(84), //0, 1
     ALLOW_STRICT_MATH(87), // 0, 1
-    CONSENSUS_LOGIC_OPTIMIZATION(88); // 0, 1
+    CONSENSUS_LOGIC_OPTIMIZATION(88);// 0, 1
 
     private long code;
 
