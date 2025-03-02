@@ -6,31 +6,23 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import ethereum.ckzg4844.CKZG4844JNI;
 import ethereum.ckzg4844.CKZGException;
 import ethereum.ckzg4844.KZG4844;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.encoders.Hex;
-import org.tron.common.parameter.CommonParameter;
-import org.tron.common.utils.ForkController;
 import org.tron.core.ChainBaseManager;
 import org.tron.core.Constant;
-import org.tron.core.capsule.TransactionCapsule;
+import org.tron.core.capsule.ContractCapsule;
 import org.tron.core.db.TransactionContext;
 import org.tron.core.exception.ContractExeException;
 import org.tron.core.exception.ContractValidateException;
 import org.tron.core.vm.config.VMConfig;
 import org.tron.protos.Protocol.Transaction;
-import org.tron.protos.Protocol.Transaction.Contract;
-import org.tron.protos.Protocol.Transaction.Contract.ContractType;
-import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
-import java.sql.Blob;
 import java.util.Arrays;
 import java.util.List;
 
 @Slf4j(topic = "actuator")
 public class BlobActuator implements  Actuator2 {
-
 
     private ChainBaseManager chainBaseManager;
 
@@ -51,21 +43,9 @@ public class BlobActuator implements  Actuator2 {
         Transaction trx = context.getTrxCap().getInstance();
         Any any =  trx.getRawData().getContract(0).getParameter();
 
-        if (any == null) {
+        blobContract = ContractCapsule.getBlobContractFromTransaction(trx);
+        if (blobContract == null) {
             throw new ContractValidateException(ActuatorConstant.CONTRACT_NOT_EXIST);
-        }
-
-        if (!any.is(BlobContract.class)) {
-            throw new ContractValidateException(
-                    "contract type error, expected type [BlobContract], real type[" + any
-                            .getClass() + "]");
-        }
-
-        try {
-            blobContract = any.unpack(BlobContract.class);
-        } catch (InvalidProtocolBufferException e) {
-            logger.debug(e.getMessage(), e);
-            throw new ContractValidateException(e.getMessage());
         }
 
         // Ensure the blob fee cap satisfies the minimum blob gas price
@@ -131,7 +111,7 @@ public class BlobActuator implements  Actuator2 {
 
     @Override
     public void execute(Object object) throws ContractExeException {
-
+        vmActuator.execute(object);
     }
 
 

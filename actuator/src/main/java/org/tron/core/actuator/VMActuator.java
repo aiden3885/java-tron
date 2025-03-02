@@ -157,7 +157,6 @@ public class VMActuator implements Actuator2 {
     }
 
     switch (contractType.getNumber()) {
-      case ContractType.BlobContract_VALUE:
       case ContractType.TriggerSmartContract_VALUE:
         trxType = TrxType.TRX_CONTRACT_CALL_TYPE;
         call();
@@ -563,10 +562,6 @@ public class VMActuator implements Actuator2 {
   private void blob() throws ContractValidateException {
     call();
 
-    if (!VMConfig.allow4844()) {
-      logger.info("Blob transaction is not allowed");
-      throw new ContractValidateException("Blob transaction is not allowed");
-    }
 
     BlobContract contract = ContractCapsule.getBlobContractFromTransaction(trx);
     if (contract == null) {
