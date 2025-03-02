@@ -2,7 +2,6 @@ package org.tron.core.actuator;
 
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 import ethereum.ckzg4844.CKZG4844JNI;
 import ethereum.ckzg4844.CKZGException;
 import ethereum.ckzg4844.KZG4844;
@@ -24,6 +23,8 @@ import java.util.List;
 @Slf4j(topic = "actuator")
 public class BlobActuator implements  Actuator2 {
 
+    public static final long ENERGY_PER_BLOB = 1 << 5;
+
     private ChainBaseManager chainBaseManager;
 
     private VMActuator vmActuator = new VMActuator(false);
@@ -41,8 +42,6 @@ public class BlobActuator implements  Actuator2 {
         }
         TransactionContext context = (TransactionContext) object;
         Transaction trx = context.getTrxCap().getInstance();
-        Any any =  trx.getRawData().getContract(0).getParameter();
-
         blobContract = ContractCapsule.getBlobContractFromTransaction(trx);
         if (blobContract == null) {
             throw new ContractValidateException(ActuatorConstant.CONTRACT_NOT_EXIST);
@@ -112,6 +111,10 @@ public class BlobActuator implements  Actuator2 {
     @Override
     public void execute(Object object) throws ContractExeException {
         vmActuator.execute(object);
+        TransactionContext context = (TransactionContext) object;
+        Transaction trx = context.getTrxCap().getInstance();
+        blobContract = ContractCapsule.getBlobContractFromTransaction(trx);
+        context.getProgramResult().spendEnergy(ENERGY_PER_BLOB * blobContract.getBlobHashesCount());
     }
 
 
