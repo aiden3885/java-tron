@@ -674,6 +674,32 @@ public class OperationActions {
     program.step();
   }
 
+  public static void blobHashAction(Program program) {
+    List<byte[]> versionedHashes = program.getVersionedHashes();
+    if (versionedHashes != null && !versionedHashes.isEmpty()) {
+      int versionedHashIndex = program.stackPop().intValueSafe();
+      if (versionedHashIndex < versionedHashes.size() && versionedHashIndex >= 0) {
+        byte[] versionedHash = versionedHashes.get(versionedHashIndex);
+        DataWord versionedHashWord = new DataWord(versionedHash).clone();
+        program.stackPush(versionedHashWord);
+      } else {
+        program.stackPush(DataWord.ZERO());
+      }
+    } else {
+      program.stackPush(DataWord.ZERO());
+    }
+
+    program.step();
+  }
+
+  public static void blobBaseFeeAction(Program program) {
+    DataWord energyFee =
+        new DataWord(program.getContractState().getDynamicPropertiesStore().getEnergyFee());
+
+    program.stackPush(energyFee);
+    program.step();
+  }
+
   public static void push0Action(Program program) {
     program.stackPush(DataWord.ZERO());
     program.step();

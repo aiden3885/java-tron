@@ -46,6 +46,7 @@ public class RuntimeImpl implements Runtime {
         break;
       case ContractType.TriggerSmartContract_VALUE:
       case ContractType.CreateSmartContract_VALUE:
+      case ContractType.BlobContract_VALUE:
         Set<String> actuatorSet = CommonParameter.getInstance().getActuatorSet();
         if (!actuatorSet.isEmpty() && !actuatorSet.contains(VMActuator.class.getSimpleName())) {
           throw new ContractValidateException("not exist contract " + "SmartContract");

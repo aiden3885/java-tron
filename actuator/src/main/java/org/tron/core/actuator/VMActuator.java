@@ -13,6 +13,8 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +67,7 @@ import org.tron.protos.Protocol.Transaction.Result.contractResult;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.SmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 @Slf4j(topic = "VM")
 public class VMActuator implements Actuator2 {
@@ -162,6 +165,10 @@ public class VMActuator implements Actuator2 {
       case ContractType.CreateSmartContract_VALUE:
         trxType = TrxType.TRX_CONTRACT_CREATION_TYPE;
         create();
+        break;
+      case ContractType.BlobContract_VALUE:
+        trxType = TrxType.TRX_CONTRACT_BLOB_TYPE;
+        blob();
         break;
       default:
         throw new ContractValidateException("Unknown contract type");
@@ -520,7 +527,7 @@ public class VMActuator implements Actuator2 {
       long vmStartInUs = System.nanoTime() / VMConstant.ONE_THOUSAND;
       long vmShouldEndInUs = vmStartInUs + thisTxCPULimitInUs;
       ProgramInvoke programInvoke = ProgramInvokeFactory
-          .createProgramInvoke(TrxType.TRX_CONTRACT_CALL_TYPE, executorType, trx,
+          .createProgramInvoke(trxType, executorType, trx,
               tokenValue, tokenId, blockCap.getInstance(), rootRepository, vmStartInUs,
               vmShouldEndInUs, energyLimit);
       if (isConstantCall) {
@@ -551,6 +558,25 @@ public class VMActuator implements Actuator2 {
           tokenValue);
     }
 
+  }
+
+  private void blob() throws ContractValidateException {
+    call();
+
+    if (!VMConfig.allow4844()) {
+      logger.info("Blob transaction is not allowed");
+      throw new ContractValidateException("Blob transaction is not allowed");
+    }
+
+    BlobContract contract = ContractCapsule.getBlobContractFromTransaction(trx);
+    if (contract == null) {
+      return;
+    }
+
+    program.setVersionedHashes(
+        contract.getBlobHashesList().stream()
+            .map(ByteString::toByteArray)
+            .collect(Collectors.toList()));
   }
 
   public long getAccountEnergyLimitWithFixRatio(AccountCapsule account, long feeLimit,
