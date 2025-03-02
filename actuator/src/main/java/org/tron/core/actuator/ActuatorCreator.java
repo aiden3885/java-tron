@@ -5,11 +5,13 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.common.utils.ForkController;
 import org.tron.core.ChainBaseManager;
+import org.tron.core.Constant;
 import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.exception.ContractValidateException;
 import org.tron.core.store.StoreFactory;
 import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Transaction.Contract;
+import org.tron.protos.contract.SmartContractOuterClass;
 
 @Slf4j(topic = "actuator")
 public class ActuatorCreator {
@@ -68,6 +70,28 @@ public class ActuatorCreator {
     abstractActuator.setChainBaseManager(chainBaseManager).setContract(contract)
         .setForkUtils(forkController).setTx(tx);
     return abstractActuator;
+  }
+
+  public Actuator2 createActuator2(TransactionCapsule transactionCapsule) {
+
+    Actuator2 actuator2;
+    if (null == transactionCapsule || null == transactionCapsule.getInstance()) {
+      logger.info("TransactionCapsule or Transaction is null");
+      return null;
+    }
+
+    Protocol.Transaction.raw rawData = transactionCapsule.getInstance().getRawData();
+    Contract.ContractType contractType = rawData.getContract(0).getType();
+    switch (contractType.getNumber()) {
+      case Contract.ContractType.BlobContract_VALUE: {
+        actuator2 = (new BlobActuator()).setChainBaseManager(chainBaseManager);
+        break;
+      }
+      default: {
+        return null;
+      }
+    }
+    return actuator2;
   }
 
   private static class ActuatorCreatorInner {

@@ -245,6 +245,7 @@ public class Args extends CommonParameter {
     PARAMETER.consensusLogicOptimization = 0;
     PARAMETER.allowTvmCancun = 0;
     PARAMETER.allow4844 = 0;
+    PARAMETER.blobTxMinBlobEnergyPrice = 0;
   }
 
   /**
@@ -1272,9 +1273,14 @@ public class Args extends CommonParameter {
         config.hasPath(Constant.COMMITTEE_ALLOW_TVM_CANCUN) ? config
             .getInt(Constant.COMMITTEE_ALLOW_TVM_CANCUN) : 0;
 
-    PARAMETER.allowTvmCancun =
+    PARAMETER.allow4844 =
             config.hasPath(Constant.COMMITTEE_ALLOW_4844) ? config
                     .getInt(Constant.COMMITTEE_ALLOW_4844) : 0;
+
+    PARAMETER.blobTxMinBlobEnergyPrice =
+            config.hasPath(Constant.COMMITTEE_BLOB_TX_MIN_BLOB_ENERGY_PRICE) ? config
+                    .getInt(Constant.COMMITTEE_BLOB_TX_MIN_BLOB_ENERGY_PRICE) : 0;
+
 
     logConfig();
   }

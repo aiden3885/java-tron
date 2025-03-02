@@ -382,7 +382,13 @@ public class ProposalService extends ProposalUtil {
         }
         case ALLOW_4844: {
           manager.getDynamicPropertiesStore().saveAllow4844(entry.getValue());
+          break;
         }
+        case BLOB_TX_MIN_BLOB_ENERGY_PRICE: {
+          manager.getDynamicPropertiesStore().saveBlobTxMinBlobEnergyPrice(entry.getValue());
+        }
+
+
         default:
           find = false;
           break;

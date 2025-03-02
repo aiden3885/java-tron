@@ -232,6 +232,9 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
 
   private static final byte[] ALLOW_4844 = "ALLOW_4844".getBytes();
 
+  private static final byte[] BLOB_TX_MIN_BLOB_ENERGY_PRICE = "BLOB_TX_MIN_BLOB_ENERGY_PRICE".getBytes();
+
+
 
   @Autowired
   private DynamicPropertiesStore(@Value("properties") String dbName) {
@@ -2946,6 +2949,17 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
             .map(BytesCapsule::getData)
             .map(ByteArray::toLong)
             .orElse(CommonParameter.getInstance().getAllow4844());
+  }
+
+  public void saveBlobTxMinBlobEnergyPrice(long blobTxMinBlobEnergyPrice) {
+    this.put(BLOB_TX_MIN_BLOB_ENERGY_PRICE, new BytesCapsule(ByteArray.fromLong(blobTxMinBlobEnergyPrice))));
+  }
+
+  public long getBlobTxMinBlobEnergyPrice() {
+    return Optional.ofNullable(getUnchecked(BLOB_TX_MIN_BLOB_ENERGY_PRICE))
+            .map(BytesCapsule::getData)
+            .map(ByteArray::toLong)
+            .orElse(CommonParameter.getInstance().getBlobTxMinBlobEnergyPrice());
   }
 
   private static class DynamicResourceProperties {

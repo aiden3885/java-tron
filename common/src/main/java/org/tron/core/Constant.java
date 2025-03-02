@@ -39,6 +39,7 @@ public class Constant {
   public static final long MAX_CONTRACT_RESULT_SIZE = 2L;
   public static final long PB_DEFAULT_ENERGY_LIMIT = 0L;
   public static final long CREATOR_DEFAULT_ENERGY_LIMIT = 1000 * 10_000L;
+  public static final int MAX_BLOBS_PER_BLOCK = 6;
 
 
   // Numbers
@@ -403,4 +404,6 @@ public class Constant {
   public static final String COMMITTEE_ALLOW_TVM_CANCUN = "committee.allowTvmCancun";
 
   public static final String COMMITTEE_ALLOW_4844 = "committee.allow4844";
+
+  public static final String COMMITTEE_BLOB_TX_MIN_BLOB_ENERGY_PRICE = "committee.blobTxMinBlobEnergyPrice";
 }

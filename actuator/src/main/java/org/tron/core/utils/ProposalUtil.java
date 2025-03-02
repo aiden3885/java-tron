@@ -839,6 +839,20 @@ public class ProposalUtil {
         }
         break;
       }
+      case BLOB_TX_MIN_BLOB_ENERGY_PRICE: {
+        if (!forkController.pass(ForkBlockVersionEnum.VERSION_4_8_0)) {
+          throw new ContractValidateException(
+                  "Bad chain parameter id [BLOB_TX_MIN_BLOB_ENERGY_PRICE]");
+        }
+        if (!(dynamicPropertiesStore.getAllow4844() == 1)) {
+          throw new ContractValidateException(
+                  "[ALLOW_4844] is not valid");
+        }
+        if (value < 1 || value > 10) {
+          throw new ContractValidateException(
+                  "This value[BLOB_TX_MIN_BLOB_ENERGY_PRICE] is only allowed to be in [1, 10]");
+        }
+      }
       default:
         break;
     }
@@ -920,6 +934,7 @@ public class ProposalUtil {
     MAX_CREATE_ACCOUNT_TX_SIZE(82), // [500, 10000]
     ALLOW_TVM_CANCUN(83), // 0, 1
     ALLOW_4844(84), //0, 1
+    BLOB_TX_MIN_BLOB_ENERGY_PRICE(85), //0, 1
     ALLOW_STRICT_MATH(87), // 0, 1
     CONSENSUS_LOGIC_OPTIMIZATION(88);// 0, 1
 

@@ -115,7 +115,7 @@ message BlobContract {
   bytes data = 4;
   int64 call_token_value = 5;
   int64 token_id = 6;
-  repeated BlobTxSidecar sidecar = 7;
-  int64 blobFreeCap = 8;
+  BlobTxSidecar sidecar = 7;
+  int64 blobFeeCap = 8;
   repeated bytes blobHashes = 9;
 }

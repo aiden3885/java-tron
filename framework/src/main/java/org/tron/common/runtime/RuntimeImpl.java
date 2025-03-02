@@ -7,10 +7,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.common.parameter.CommonParameter;
-import org.tron.core.actuator.Actuator;
-import org.tron.core.actuator.Actuator2;
-import org.tron.core.actuator.ActuatorCreator;
-import org.tron.core.actuator.VMActuator;
+import org.tron.core.actuator.*;
 import org.tron.core.db.TransactionContext;
 import org.tron.core.exception.ContractExeException;
 import org.tron.core.exception.ContractValidateException;
@@ -44,6 +41,9 @@ public class RuntimeImpl implements Runtime {
     ContractType contractType = context.getTrxCap().getInstance().getRawData().getContract(0)
         .getType();
     switch (contractType.getNumber()) {
+      case ContractType.BlobContract_VALUE:
+        actuator2 = ActuatorCreator.getINSTANCE().createActuator2(context.getTrxCap());
+        break;
       case ContractType.TriggerSmartContract_VALUE:
       case ContractType.CreateSmartContract_VALUE:
         Set<String> actuatorSet = CommonParameter.getInstance().getActuatorSet();
@@ -58,7 +58,7 @@ public class RuntimeImpl implements Runtime {
     if (actuator2 != null) {
       actuator2.validate(context);
       actuator2.execute(context);
-    } else {
+    } else if (actuatorList != null) {
       for (Actuator act : actuatorList) {
         act.validate();
         act.execute(context.getProgramResult().getRet());

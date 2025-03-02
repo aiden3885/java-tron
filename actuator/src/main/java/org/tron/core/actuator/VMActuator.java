@@ -154,6 +154,7 @@ public class VMActuator implements Actuator2 {
     }
 
     switch (contractType.getNumber()) {
+      case ContractType.BlobContract_VALUE:
       case ContractType.TriggerSmartContract_VALUE:
         trxType = TrxType.TRX_CONTRACT_CALL_TYPE;
         call();
