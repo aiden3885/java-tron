@@ -58,7 +58,7 @@ import org.tron.protos.Protocol.Permission.PermissionType;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.Transaction.Result.contractResult;
-import org.tron.protos.contract.SmartContractOuterClass;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
 import org.tron.protos.contract.BalanceContract.DelegateResourceContract;
@@ -283,7 +283,7 @@ public class TransactionUtil {
     return DELEGATE_COST_BASE_SIZE + addSize;
   }
 
-  public static void validateBlobTx(SmartContractOuterClass.BlobContract blobContract, SmartContractOuterClass.BlobContract.BlobTxSidecar sidecar) throws ContractValidateException {
+  public static void validateBlobTx(BlobContract blobContract) throws ContractValidateException {
     List<ByteString> blobHashes = blobContract.getBlobHashesList();
 
     // Ensure the number of items in the blob transaction and various side
@@ -297,11 +297,10 @@ public class TransactionUtil {
     }
 
     //validate sideCars
-    validateSidecars(blobHashes, sidecar);
-
+    validateSidecars(blobHashes, blobContract.getSidecar());
   }
 
-  private static void validateSidecars(List<ByteString> blobHashes, SmartContractOuterClass.BlobContract.BlobTxSidecar sidecar) throws ContractValidateException {
+  private static void validateSidecars(List<ByteString> blobHashes, BlobContract.BlobTxSidecar sidecar) throws ContractValidateException {
     if (sidecar.getBlobsCount() != blobHashes.size()) {
       throw new ContractValidateException(String.format("invalid number of %d blobs compare to %d blob hashes", sidecar.getBlobsCount(), blobHashes.size()));
     }
