@@ -54,7 +54,7 @@ public class BlobSidecarCapsule implements ProtoCapsule<BlobSidecar> {
   }
 
   public byte[] createDbKey() {
-    return (blobSidecar.getBlobNumber() + "-" + blobSidecar.getTxIndex()).getBytes();
+    return (blobSidecar.getBlockNumber() + "-" + blobSidecar.getTxIndex()).getBytes();
   }
 
   @Override

@@ -15,19 +15,8 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.ByteString;
 import io.prometheus.client.Histogram;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -161,7 +150,6 @@ import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.TransactionInfo;
 import org.tron.protos.contract.BalanceContract;
-import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 
 @Slf4j(topic = "DB")
@@ -1623,6 +1611,9 @@ public class Manager {
     Set<String> accountSet = new HashSet<>();
     AtomicInteger shieldedTransCounts = new AtomicInteger(0);
     List<TransactionCapsule> toBePacked = new ArrayList<>();
+
+    Map<TransactionCapsule.TxId, Transaction> blobTxToBePacked = new HashMap<>();
+    int index = 0;
     long currentSize = blockCapsule.getInstance().getSerializedSize();
     boolean isSort = Args.getInstance().isOpenTransactionSort();
     int[] logSize = new int[] {pendingTransactions.size(), rePushTransactions.size(), 0, 0};
@@ -1715,10 +1706,13 @@ public class Manager {
 
         //remove blob from transaction before save in blocks;
         if (trx.isBlobTransaction()) {
+          TransactionCapsule.TxId txId = new TransactionCapsule.TxId(index, trx.getTransactionId());
+          blobTxToBePacked.put(txId, trx.getInstance());
           trx.setTransaction(trx.getTransactionWithoutBlob());
         }
 
         toBePacked.add(trx);
+        index++;
         currentSize += trxPackSize;
         if (fromPending) {
           logSize[2] += 1;
@@ -1737,6 +1731,8 @@ public class Manager {
 
     blockCapsule.setMerkleRoot();
     blockCapsule.sign(miner.getPrivateKey());
+
+    blockCapsule.addBlobs(blobTxToBePacked);
 
     BlockCapsule capsule = new BlockCapsule(blockCapsule.getInstance());
     capsule.generatedByMyself = true;

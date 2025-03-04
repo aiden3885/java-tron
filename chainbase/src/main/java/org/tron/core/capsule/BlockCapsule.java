@@ -23,6 +23,7 @@ import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,6 +42,7 @@ import org.tron.core.exception.BadItemException;
 import org.tron.core.exception.ValidateSignatureException;
 import org.tron.core.store.AccountStore;
 import org.tron.core.store.DynamicPropertiesStore;
+import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Block;
 import org.tron.protos.Protocol.BlockHeader;
 import org.tron.protos.Protocol.Transaction;
@@ -333,6 +335,22 @@ public class BlockCapsule implements ProtoCapsule<Block> {
     }
     toStringBuff.append("]");
     return toStringBuff.toString();
+  }
+
+  public void addBlobs(Map<TransactionCapsule.TxId, Transaction> sidecarsToBePacked) {
+    for (Map.Entry<TransactionCapsule.TxId, Transaction> entry : sidecarsToBePacked.entrySet()) {
+      TransactionCapsule.TxId txId = entry.getKey();
+      Transaction trx = entry.getValue();
+      Protocol.BlobTxSidecar sidecar = ContractCapsule.getSideCar(trx);
+      block = block.toBuilder().addSidecars(
+              Protocol.BlobSidecar.newBuilder().
+                      setSidecar(sidecar).
+                      setBlockNumber(block.getBlockHeader().getRawData().getNumber()).
+                      setBlockHash(getBlockId().getByteString()).
+                      setTxIndex(txId.getTrxIndex()).
+                      setTxHash(txId.getTransactionId().getByteString())
+      ).build();
+    }
   }
 
   public static class BlockId extends Sha256Hash {

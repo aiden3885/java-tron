@@ -734,6 +734,9 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
    * }
    */
   public long computeTrxSizeForBlockMessage() {
+    if (isBlobTransaction()) {
+      return CodedOutputStream.computeMessageSize(1, getTransactionWithoutBlob());
+    }
     return CodedOutputStream.computeMessageSize(1, this.transaction);
   }
 
@@ -908,10 +911,7 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
     }
     Transaction.Contract contract = transaction.getRawData().getContract(0);
     BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transaction);
-
-
-    BlobTxSidecar sidecar = null;
-    BlobContract blobContractWithoutBlob = BlobContract.newBuilder().mergeFrom(blobContract).setSidecar(sidecar).build();
+    BlobContract blobContractWithoutBlob = blobContract.toBuilder().clearSidecar().build();
 
     return Transaction.newBuilder().mergeFrom(transaction).setRawData(
             raw.newBuilder().mergeFrom(transaction.getRawData()).setContract(0,
@@ -925,5 +925,18 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
     Transaction.Contract contract = transaction.getRawData().getContract(0);
     return contract.getType() == Transaction.Contract.ContractType.BlobContract;
 
+  }
+
+  public static class TxId {
+    public TxId(int trxIndex, Sha256Hash trxHash) {
+      this.trxIndex = trxIndex;
+      this.transactionId = trxHash;
+    }
+
+    @Getter
+    int trxIndex;
+
+    @Getter
+    Sha256Hash transactionId;
   }
 }

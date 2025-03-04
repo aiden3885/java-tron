@@ -23,12 +23,12 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.core.Constant;
+import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.SmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.SmartContract.ABI;
 import org.tron.protos.contract.SmartContractOuterClass.SmartContractDataWrapper;
-import org.tron.protos.contract.SmartContractOuterClass.SmartContractDataWrapperOrBuilder;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
@@ -81,6 +81,14 @@ public class ContractCapsule implements ProtoCapsule<SmartContract> {
     } catch (InvalidProtocolBufferException e) {
       return null;
     }
+  }
+
+  public static Protocol.BlobTxSidecar getSideCar(Transaction trx) {
+    BlobContract blobContract = getBlobContractFromTransaction(trx);
+    if (blobContract != null) {
+      return blobContract.getSidecar();
+    }
+    return null;
   }
 
   public byte[] getCodeHash() {

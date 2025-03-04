@@ -902,8 +902,8 @@ message BlobTxSidecar {
 
 message BlobSidecar {
   BlobTxSidecar sidecar = 1;
-  int64 blobNumber = 2;
-  bytes blobHash = 3;
+  int64 blockNumber = 2;
+  bytes blockHash = 3;
   int64 txIndex = 4;
   bytes txHash = 5;
 }
