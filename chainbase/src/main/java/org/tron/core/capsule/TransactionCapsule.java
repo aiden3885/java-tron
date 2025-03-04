@@ -63,6 +63,7 @@ import org.tron.core.exception.TransactionExpirationException;
 import org.tron.core.exception.ValidateSignatureException;
 import org.tron.core.store.AccountStore;
 import org.tron.core.store.DynamicPropertiesStore;
+import org.tron.protos.Protocol.BlobTxSidecar;
 import org.tron.protos.Protocol.Key;
 import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Permission.PermissionType;
@@ -79,7 +80,7 @@ import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.BalanceContract.TransferContract;
 import org.tron.protos.contract.ShieldContract.ShieldedTransferContract;
 import org.tron.protos.contract.ShieldContract.SpendDescription;
-import org.tron.protos.contract.SmartContractOuterClass;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
 import org.tron.protos.contract.WitnessContract.VoteWitnessContract;
@@ -906,11 +907,11 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
       return transaction;
     }
     Transaction.Contract contract = transaction.getRawData().getContract(0);
-    SmartContractOuterClass.BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transaction);
+    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transaction);
 
 
-    SmartContractOuterClass.BlobContract.BlobTxSidecar sidecar = null;
-    SmartContractOuterClass.BlobContract blobContractWithoutBlob = SmartContractOuterClass.BlobContract.newBuilder().mergeFrom(blobContract).setSidecar(sidecar).build();
+    BlobTxSidecar sidecar = null;
+    BlobContract blobContractWithoutBlob = BlobContract.newBuilder().mergeFrom(blobContract).setSidecar(sidecar).build();
 
     return Transaction.newBuilder().mergeFrom(transaction).setRawData(
             raw.newBuilder().mergeFrom(transaction.getRawData()).setContract(0,

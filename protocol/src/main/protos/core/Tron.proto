@@ -522,6 +522,7 @@ message BlockHeader {
 message Block {
   repeated Transaction transactions = 1;
   BlockHeader block_header = 2;
+  repeated BlobSidecar sidecars = 3;
 }
 
 message ChainInventory {
@@ -891,4 +892,18 @@ message PBFTCommitResult {
 
 message SRL {
   repeated bytes srAddress = 1;
+}
+
+message BlobTxSidecar {
+  repeated bytes blobs = 1;
+  repeated bytes commitments = 2;
+  repeated bytes proofs = 3;
+}
+
+message BlobSidecar {
+  BlobTxSidecar sidecar = 1;
+  int64 blobNumber = 2;
+  bytes blobHash = 3;
+  int64 txIndex = 4;
+  bytes txHash = 5;
 }
