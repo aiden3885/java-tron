@@ -663,7 +663,7 @@ public class OperationRegistry {
 
   public static void appendCancunOperations(JumpTable table) {
     BooleanSupplier proposal = VMConfig::allowTvmCancun;
-    BooleanSupplier blobProposal = VMConfig::allow4844;
+    BooleanSupplier blobProposal = VMConfig::allowBlobTx;
 
     table.set(new Operation(
         Op.TLOAD, 1, 1,

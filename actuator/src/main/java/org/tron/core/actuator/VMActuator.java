@@ -31,10 +31,7 @@ import org.tron.common.utils.StorageUtils;
 import org.tron.common.utils.StringUtil;
 import org.tron.common.utils.WalletUtil;
 import org.tron.core.ChainBaseManager;
-import org.tron.core.capsule.AccountCapsule;
-import org.tron.core.capsule.BlockCapsule;
-import org.tron.core.capsule.ContractCapsule;
-import org.tron.core.capsule.ReceiptCapsule;
+import org.tron.core.capsule.*;
 import org.tron.core.db.EnergyProcessor;
 import org.tron.core.db.TransactionContext;
 import org.tron.core.exception.ContractExeException;
@@ -71,6 +68,8 @@ import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 @Slf4j(topic = "VM")
 public class VMActuator implements Actuator2 {
+
+  public static final long ENERGY_PER_BLOB = 1 << 5;
 
   /* tx and block info */
   private Transaction trx;
@@ -299,6 +298,11 @@ public class VMActuator implements Actuator2 {
       logger.info("runtime result is :{}", result.getException().getMessage());
     }
     //use program returned fill context
+    if (TrxType.TRX_CONTRACT_BLOB_TYPE == trxType) {
+      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(context.getTrxCap().getInstance());
+      result.spendEnergy(ENERGY_PER_BLOB * blobContract.getBlobHashesCount());
+    }
+
     context.setProgramResult(result);
 
     if (VMConfig.vmTrace() && program != null) {
@@ -562,6 +566,10 @@ public class VMActuator implements Actuator2 {
   private void blob() throws ContractValidateException {
     call();
 
+    if (!VMConfig.allowBlobTx()) {
+      logger.info("Blob transaction is not allowed");
+      throw new ContractValidateException("Blob transaction is not allowed");
+    }
 
     BlobContract contract = ContractCapsule.getBlobContractFromTransaction(trx);
     if (contract == null) {

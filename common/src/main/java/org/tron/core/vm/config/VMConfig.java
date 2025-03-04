@@ -55,7 +55,7 @@ public class VMConfig {
 
   private static boolean ALLOW_TVM_CANCUN = false;
 
-  private static boolean ALLOW_4844 = false;
+  private static boolean ALLOW_BLOB_TX = false;
 
   private static Boolean DISABLE_JAVA_LANG_MATH = false;
 
@@ -155,7 +155,7 @@ public class VMConfig {
   }
 
   public static void initAllow4844(long allow) {
-    ALLOW_4844 = allow == 1;
+    ALLOW_BLOB_TX = allow == 1;
   }
   public static void initAllowTvmCancun(long allow) {
     ALLOW_TVM_CANCUN = allow == 1;
@@ -253,8 +253,8 @@ public class VMConfig {
     return ALLOW_TVM_CANCUN;
   }
 
-  public static boolean allow4844() {
-    return ALLOW_4844;
+  public static boolean allowBlobTx() {
+    return ALLOW_BLOB_TX;
   }
 
   public static boolean disableJavaLangMath() {

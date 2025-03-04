@@ -19,7 +19,6 @@ public class TransactionFactory {
   static {
     register(ContractType.CreateSmartContract, null, CreateSmartContract.class);
     register(ContractType.TriggerSmartContract, null, TriggerSmartContract.class);
-    register(ContractType.BlobContract, null, BlobContract.class);
   }
 
   public static void register(ContractType type, Class<? extends Actuator> actuatorClass,

@@ -230,9 +230,7 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
 
   private static final byte[] ALLOW_TVM_CANCUN = "ALLOW_TVM_CANCUN".getBytes();
 
-  private static final byte[] ALLOW_4844 = "ALLOW_4844".getBytes();
-
-  private static final byte[] BLOB_TX_MIN_BLOB_ENERGY_PRICE = "BLOB_TX_MIN_BLOB_ENERGY_PRICE".getBytes();
+  private static final byte[] ALLOW_BLOB_TX = "ALLOW_BLOB_TX".getBytes();
 
 
 
@@ -2939,30 +2937,23 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
         .orElse(CommonParameter.getInstance().getAllowTvmCancun());
   }
 
-  public void saveAllow4844(long allow4844) {
-    this.put(ALLOW_4844,
-            new BytesCapsule(ByteArray.fromLong(allow4844)));
+  public void saveAllowBlobTx(long allowBlobTx) {
+    this.put(ALLOW_BLOB_TX,
+            new BytesCapsule(ByteArray.fromLong(allowBlobTx)));
   }
 
-  public long getAllow4844() {
-    return Optional.ofNullable(getUnchecked(ALLOW_4844))
+  public long getAllowBlobTx() {
+    return Optional.ofNullable(getUnchecked(ALLOW_BLOB_TX))
             .map(BytesCapsule::getData)
             .map(ByteArray::toLong)
-            .orElse(CommonParameter.getInstance().getAllow4844());
+            .orElse(CommonParameter.getInstance().getAllowBlobTx());
   }
 
-  public void saveBlobTxMinBlobEnergyPrice(long blobTxMinBlobEnergyPrice) {
-    this.put(BLOB_TX_MIN_BLOB_ENERGY_PRICE, new BytesCapsule(ByteArray.fromLong(blobTxMinBlobEnergyPrice))));
-  }
+    public boolean allowBlobTx() {
+      return getAllowBlobTx() == 1L;
+    }
 
-  public long getBlobTxMinBlobEnergyPrice() {
-    return Optional.ofNullable(getUnchecked(BLOB_TX_MIN_BLOB_ENERGY_PRICE))
-            .map(BytesCapsule::getData)
-            .map(ByteArray::toLong)
-            .orElse(CommonParameter.getInstance().getBlobTxMinBlobEnergyPrice());
-  }
-
-  private static class DynamicResourceProperties {
+    private static class DynamicResourceProperties {
 
     private static final byte[] ONE_DAY_NET_LIMIT = "ONE_DAY_NET_LIMIT".getBytes();
     //public free bandwidth

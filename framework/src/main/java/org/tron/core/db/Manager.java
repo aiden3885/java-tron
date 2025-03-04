@@ -87,15 +87,8 @@ import org.tron.core.ChainBaseManager;
 import org.tron.core.Constant;
 import org.tron.core.Wallet;
 import org.tron.core.actuator.ActuatorCreator;
-import org.tron.core.capsule.AccountCapsule;
-import org.tron.core.capsule.BlockBalanceTraceCapsule;
-import org.tron.core.capsule.BlockCapsule;
+import org.tron.core.capsule.*;
 import org.tron.core.capsule.BlockCapsule.BlockId;
-import org.tron.core.capsule.BytesCapsule;
-import org.tron.core.capsule.TransactionCapsule;
-import org.tron.core.capsule.TransactionInfoCapsule;
-import org.tron.core.capsule.TransactionRetCapsule;
-import org.tron.core.capsule.WitnessCapsule;
 import org.tron.core.capsule.utils.TransactionUtil;
 import org.tron.core.config.Parameter.ChainConstant;
 import org.tron.core.config.args.Args;
@@ -168,6 +161,7 @@ import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.TransactionInfo;
 import org.tron.protos.contract.BalanceContract;
+import org.tron.protos.contract.SmartContractOuterClass;
 
 
 @Slf4j(topic = "DB")
@@ -872,6 +866,16 @@ public class Manager {
       return true;
     }
 
+    if (isBlobTransaction(trx.getInstance()) && !chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+        logger.warn("blob tx is not supported");
+        return false;
+      }
+      SmartContractOuterClass.BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
+      SmartContractOuterClass.BlobContract.BlobTxSidecar sidecar = blobContract.getSidecar();
+      org.tron.core.utils.TransactionUtil.validateBlobTx(blobContract, sidecar);
+    }
+
     pushTransactionQueue.add(trx);
     Metrics.gaugeInc(MetricKeys.Gauge.MANAGER_QUEUE, 1,
         MetricLabels.Gauge.QUEUE_QUEUED);
@@ -905,7 +909,7 @@ public class Manager {
           }
 
           try (ISession tmpSession = revokingStore.buildSession()) {
-            (trx, null);
+            processTransaction(trx, null);
             trx.setTrxTrace(null);
             pendingTransactions.add(trx);
             Metrics.gaugeInc(MetricKeys.Gauge.MANAGER_QUEUE, 1,
@@ -924,6 +928,11 @@ public class Manager {
       }
     }
     return true;
+  }
+
+  private boolean isBlobTransaction(Transaction transaction) {
+    Contract contract = transaction.getRawData().getContract(0);
+    return contract.getType() == Contract.ContractType.BlobContract;
   }
 
   public void consumeMultiSignFee(TransactionCapsule trx, TransactionTrace trace)

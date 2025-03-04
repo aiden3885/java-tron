@@ -403,7 +403,6 @@ public class Constant {
 
   public static final String COMMITTEE_ALLOW_TVM_CANCUN = "committee.allowTvmCancun";
 
-  public static final String COMMITTEE_ALLOW_4844 = "committee.allow4844";
+  public static final String COMMITTEE_ALLOW_BLOB_TX = "committee.allowBlobTx";
 
-  public static final String COMMITTEE_BLOB_TX_MIN_BLOB_ENERGY_PRICE = "committee.blobTxMinBlobEnergyPrice";
 }

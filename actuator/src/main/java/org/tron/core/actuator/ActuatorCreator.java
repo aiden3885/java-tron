@@ -72,28 +72,6 @@ public class ActuatorCreator {
     return abstractActuator;
   }
 
-  public Actuator2 createActuator2(TransactionCapsule transactionCapsule) {
-
-    Actuator2 actuator2;
-    if (null == transactionCapsule || null == transactionCapsule.getInstance()) {
-      logger.info("TransactionCapsule or Transaction is null");
-      return null;
-    }
-
-    Protocol.Transaction.raw rawData = transactionCapsule.getInstance().getRawData();
-    Contract.ContractType contractType = rawData.getContract(0).getType();
-    switch (contractType.getNumber()) {
-      case Contract.ContractType.BlobContract_VALUE: {
-        actuator2 = (new BlobActuator()).setChainBaseManager(chainBaseManager);
-        break;
-      }
-      default: {
-        return null;
-      }
-    }
-    return actuator2;
-  }
-
   private static class ActuatorCreatorInner {
 
     private static ActuatorCreator instance;

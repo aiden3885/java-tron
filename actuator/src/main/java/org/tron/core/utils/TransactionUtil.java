@@ -26,10 +26,16 @@ import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import java.security.SignatureException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+
+import ethereum.ckzg4844.CKZG4844JNI;
+import ethereum.ckzg4844.CKZGException;
+import ethereum.ckzg4844.KZG4844;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
+import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tron.api.GrpcAPI.Return;
@@ -40,8 +46,10 @@ import org.tron.api.GrpcAPI.TransactionSignWeight.Result;
 import org.tron.common.parameter.CommonParameter;
 import org.tron.common.utils.Sha256Hash;
 import org.tron.core.ChainBaseManager;
+import org.tron.core.Constant;
 import org.tron.core.capsule.AccountCapsule;
 import org.tron.core.capsule.TransactionCapsule;
+import org.tron.core.exception.ContractValidateException;
 import org.tron.core.exception.PermissionException;
 import org.tron.core.exception.SignatureFormatException;
 import org.tron.core.store.DynamicPropertiesStore;
@@ -50,6 +58,7 @@ import org.tron.protos.Protocol.Permission.PermissionType;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.Transaction.Result.contractResult;
+import org.tron.protos.contract.SmartContractOuterClass;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
 import org.tron.protos.contract.BalanceContract.DelegateResourceContract;
@@ -273,4 +282,60 @@ public class TransactionUtil {
 
     return DELEGATE_COST_BASE_SIZE + addSize;
   }
+
+  public static void validateBlobTx(SmartContractOuterClass.BlobContract blobContract, SmartContractOuterClass.BlobContract.BlobTxSidecar sidecar) throws ContractValidateException {
+    List<ByteString> blobHashes = blobContract.getBlobHashesList();
+
+    // Ensure the number of items in the blob transaction and various side
+    // data match up before doing any expensive validations
+    if (blobHashes.isEmpty()) {
+      throw new ContractValidateException("blobless blob transaction");
+    }
+
+    if (blobHashes.size() > Constant.MAX_BLOBS_PER_BLOCK) {
+      throw new ContractValidateException(String.format("too many blobs in transaction: have %d, permitted %d", blobHashes.size(), Constant.MAX_BLOBS_PER_BLOCK));
+    }
+
+    //validate sideCars
+    validateSidecars(blobHashes, sidecar);
+
+  }
+
+  private static void validateSidecars(List<ByteString> blobHashes, SmartContractOuterClass.BlobContract.BlobTxSidecar sidecar) throws ContractValidateException {
+    if (sidecar.getBlobsCount() != blobHashes.size()) {
+      throw new ContractValidateException(String.format("invalid number of %d blobs compare to %d blob hashes", sidecar.getBlobsCount(), blobHashes.size()));
+    }
+
+    if (sidecar.getCommitmentsCount() != blobHashes.size()) {
+      throw new ContractValidateException(String.format("invalid number of %d commitments compare to %d blob hashes", sidecar.getBlobsCount(), blobHashes.size()));
+    }
+
+    if (sidecar.getProofsCount() != blobHashes.size()) {
+      throw new ContractValidateException(String.format("invalid number of %d proofs compare to %d blob hashes", sidecar.getProofsCount(), blobHashes.size()));
+    }
+
+    // Blob quantities match up, validate that the provers match with the
+    // transaction hash before getting to the cryptography
+    for (int i = 0; i < blobHashes.size(); i++) {
+      byte[] blobHashBytes = blobHashes.get(i).toByteArray();
+      byte[] computed =  KZG4844.calcBlobHashV1(sidecar.getCommitments(i).toByteArray());
+      if (!Arrays.equals(blobHashBytes, computed)) {
+        throw new ContractValidateException(String.format("blob %d, computed hash %s mismatches transaction one %s",i, Hex.toHexString(computed), Hex.toHexString(blobHashBytes)));
+      }
+    }
+
+    // Blob commitments match with the hashes in the transaction, verify the
+    // blobs themselves via KZG
+    for (int i = 0; i < blobHashes.size(); i++) {
+      try {
+        if (!CKZG4844JNI.verifyBlobKzgProof(blobHashes.get(i).toByteArray(), sidecar.getCommitments(i).toByteArray(), sidecar.getProofs(i).toByteArray())) {
+          throw new ContractValidateException(String.format("invalid blob %d", i));
+        }
+      }
+      catch (CKZGException e) {
+        throw new ContractValidateException(String.format("invalid blob %d", i));
+      }
+    }
+  }
+
 }

@@ -42,7 +42,7 @@ public class ConfigLoader {
         VMConfig.initAllowEnergyAdjustment(ds.getAllowEnergyAdjustment());
         VMConfig.initAllowStrictMath(ds.getAllowStrictMath());
         VMConfig.initAllowTvmCancun(ds.getAllowTvmCancun());
-        VMConfig.initAllow4844(ds.getAllow4844());
+        VMConfig.initAllow4844(ds.getAllowBlobTx());
         VMConfig.initDisableJavaLangMath(ds.getConsensusLogicOptimization());
       }
     }

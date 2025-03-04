@@ -42,8 +42,6 @@ public class RuntimeImpl implements Runtime {
         .getType();
     switch (contractType.getNumber()) {
       case ContractType.BlobContract_VALUE:
-        actuator2 = ActuatorCreator.getINSTANCE().createActuator2(context.getTrxCap());
-        break;
       case ContractType.TriggerSmartContract_VALUE:
       case ContractType.CreateSmartContract_VALUE:
         Set<String> actuatorSet = CommonParameter.getInstance().getActuatorSet();

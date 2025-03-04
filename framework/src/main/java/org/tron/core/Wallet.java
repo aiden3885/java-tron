@@ -1384,7 +1384,7 @@ public class Wallet {
 
     builder.addChainParameter(Protocol.ChainParameters.ChainParameter.newBuilder()
             .setKey("getAllow4844")
-            .setValue(dbManager.getDynamicPropertiesStore().getAllow4844())
+            .setValue(dbManager.getDynamicPropertiesStore().getAllowBlobTx())
             .build());
 
 

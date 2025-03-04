@@ -380,14 +380,10 @@ public class ProposalService extends ProposalUtil {
           manager.getDynamicPropertiesStore().saveAllowTvmCancun(entry.getValue());
           break;
         }
-        case ALLOW_4844: {
-          manager.getDynamicPropertiesStore().saveAllow4844(entry.getValue());
+        case ALLOW_BLOB_TX: {
+          manager.getDynamicPropertiesStore().saveAllowBlobTx(entry.getValue());
           break;
         }
-        case BLOB_TX_MIN_BLOB_ENERGY_PRICE: {
-          manager.getDynamicPropertiesStore().saveBlobTxMinBlobEnergyPrice(entry.getValue());
-        }
-
 
         default:
           find = false;
