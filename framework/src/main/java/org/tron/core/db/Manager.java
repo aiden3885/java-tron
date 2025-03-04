@@ -161,7 +161,7 @@ import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.TransactionInfo;
 import org.tron.protos.contract.BalanceContract;
-import org.tron.protos.contract.SmartContractOuterClass;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 
 @Slf4j(topic = "DB")
@@ -866,14 +866,12 @@ public class Manager {
       return true;
     }
 
-    if (trx.isBlobTransaction() && !chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+    if (trx.isBlobTransaction()) {
       if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
-        logger.warn("blob tx is not supported");
-        return false;
+        throw new ContractValidateException("blob tx is not supported");
       }
-      SmartContractOuterClass.BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
-      SmartContractOuterClass.BlobContract.BlobTxSidecar sidecar = blobContract.getSidecar();
-      org.tron.core.utils.TransactionUtil.validateBlobTx(blobContract, sidecar);
+      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
+      org.tron.core.utils.TransactionUtil.validateBlobTx(blobContract);
     }
 
     pushTransactionQueue.add(trx);
