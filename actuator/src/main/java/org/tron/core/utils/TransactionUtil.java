@@ -48,6 +48,7 @@ import org.tron.common.utils.Sha256Hash;
 import org.tron.core.ChainBaseManager;
 import org.tron.core.Constant;
 import org.tron.core.capsule.AccountCapsule;
+import org.tron.core.capsule.ContractCapsule;
 import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.exception.ContractValidateException;
 import org.tron.core.exception.PermissionException;
@@ -283,23 +284,6 @@ public class TransactionUtil {
     return DELEGATE_COST_BASE_SIZE + addSize;
   }
 
-  public static void validateBlobTx(BlobContract blobContract) throws ContractValidateException {
-    List<ByteString> blobHashes = blobContract.getBlobHashesList();
-
-    // Ensure the number of items in the blob transaction and various side
-    // data match up before doing any expensive validations
-    if (blobHashes.isEmpty()) {
-      throw new ContractValidateException("blobless blob transaction");
-    }
-
-    if (blobHashes.size() > Constant.MAX_BLOBS_PER_BLOCK) {
-      throw new ContractValidateException(String.format("too many blobs in transaction: have %d, permitted %d", blobHashes.size(), Constant.MAX_BLOBS_PER_BLOCK));
-    }
-
-    //validate sideCars
-    validateSidecars(blobHashes, blobContract.getSidecar());
-  }
-
   private static void validateSidecars(List<ByteString> blobHashes, BlobContract.BlobTxSidecar sidecar) throws ContractValidateException {
     if (sidecar.getBlobsCount() != blobHashes.size()) {
       throw new ContractValidateException(String.format("invalid number of %d blobs compare to %d blob hashes", sidecar.getBlobsCount(), blobHashes.size()));
@@ -335,6 +319,24 @@ public class TransactionUtil {
         throw new ContractValidateException(String.format("invalid blob %d", i));
       }
     }
+  }
+
+  public static void validateBlobTx(TransactionCapsule trx) throws ContractValidateException {
+    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
+    List<ByteString> blobHashes = blobContract.getBlobHashesList();
+
+    // Ensure the number of items in the blob transaction and various side
+    // data match up before doing any expensive validations
+    if (blobHashes.isEmpty()) {
+      throw new ContractValidateException("blobless blob transaction");
+    }
+
+    if (blobHashes.size() > Constant.MAX_BLOBS_PER_BLOCK) {
+      throw new ContractValidateException(String.format("too many blobs in transaction: have %d, permitted %d", blobHashes.size(), Constant.MAX_BLOBS_PER_BLOCK));
+    }
+
+    //validate sideCars
+    validateSidecars(blobHashes, blobContract.getSidecar());
   }
 
 }

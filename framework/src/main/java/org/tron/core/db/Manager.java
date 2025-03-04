@@ -870,8 +870,7 @@ public class Manager {
       if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
         throw new ContractValidateException("blob tx is not supported");
       }
-      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
-      org.tron.core.utils.TransactionUtil.validateBlobTx(blobContract);
+      org.tron.core.utils.TransactionUtil.validateBlobTx(trx);
     }
 
     pushTransactionQueue.add(trx);
@@ -1662,6 +1661,18 @@ public class Manager {
                 fromPending, pendingTransactions.size(), rePushTransactions.size());
         continue;
       }
+
+      if (trx.isBlobTransaction()) {
+        if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+          continue;
+        }
+        try {
+            org.tron.core.utils.TransactionUtil.validateBlobTx(trx);
+        } catch (ContractValidateException e) {
+            continue;
+        }
+      }
+
       if (System.currentTimeMillis() > timeout) {
         logger.warn("Processing transaction time exceeds the producing time {}.",
             System.currentTimeMillis());
@@ -1694,12 +1705,19 @@ public class Manager {
       if (ownerAddressSet.contains(ownerAddress)) {
         trx.setVerified(false);
       }
+
       // apply transaction
       try (ISession tmpSession = revokingStore.buildSession()) {
         accountStateCallBack.preExeTrans();
         processTransaction(trx, blockCapsule);
         accountStateCallBack.exeTransFinish();
         tmpSession.merge();
+
+        //remove blob from transaction before save in blocks;
+        if (trx.isBlobTransaction()) {
+          trx.setTransaction(trx.getTransactionWithoutBlob());
+        }
+
         toBePacked.add(trx);
         currentSize += trxPackSize;
         if (fromPending) {
@@ -1829,6 +1847,7 @@ public class Manager {
           transactionCapsule.setVerified(true);
         }
         accountStateCallBack.preExeTrans();
+        //todo validate blob transaction, blobs is extracted from block
         TransactionInfo result = processTransaction(transactionCapsule, block);
         accountStateCallBack.exeTransFinish();
         if (Objects.nonNull(result)) {
