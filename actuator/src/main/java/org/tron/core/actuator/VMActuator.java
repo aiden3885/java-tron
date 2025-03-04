@@ -158,7 +158,7 @@ public class VMActuator implements Actuator2 {
     switch (contractType.getNumber()) {
       case ContractType.TriggerSmartContract_VALUE:
         trxType = TrxType.TRX_CONTRACT_CALL_TYPE;
-        call();
+        call(false);
         break;
       case ContractType.CreateSmartContract_VALUE:
         trxType = TrxType.TRX_CONTRACT_CREATION_TYPE;
@@ -460,7 +460,7 @@ public class VMActuator implements Actuator2 {
    * **
    */
 
-  private void call()
+  private void call(boolean isBlob)
       throws ContractValidateException {
 
     if (!rootRepository.getDynamicPropertiesStore().supportVM()) {
@@ -474,13 +474,14 @@ public class VMActuator implements Actuator2 {
     }
 
     if (contract.getContractAddress() == null) {
-      throw new ContractValidateException("Cannot get contract address from TriggerContract");
+      throw new ContractValidateException("Cannot get contract address from "
+          + trx.getRawData().getContract(0).getType());
     }
 
     byte[] contractAddress = contract.getContractAddress().toByteArray();
 
     ContractCapsule deployedContract = rootRepository.getContract(contractAddress);
-    if (null == deployedContract) {
+    if (null == deployedContract && !isBlob) {
       logger.info("No contract or not a smart contract");
       throw new ContractValidateException("No contract or not a smart contract");
     }
@@ -550,7 +551,9 @@ public class VMActuator implements Actuator2 {
       }
     }
 
-    program.getResult().setContractAddress(contractAddress);
+    if (VMConfig.allowBlobTx() && program != null) {
+      program.getResult().setContractAddress(contractAddress);
+    }
     //transfer from callerAddress to targetAddress according to callValue
 
     if (callValue > 0) {
@@ -564,7 +567,7 @@ public class VMActuator implements Actuator2 {
   }
 
   private void blob() throws ContractValidateException {
-    call();
+    call(true);
 
     if (!VMConfig.allowBlobTx()) {
       logger.info("Blob transaction is not allowed");
@@ -576,10 +579,12 @@ public class VMActuator implements Actuator2 {
       return;
     }
 
-    program.setVersionedHashes(
-        contract.getBlobHashesList().stream()
-            .map(ByteString::toByteArray)
-            .collect(Collectors.toList()));
+    if (program != null) {
+      program.setVersionedHashes(
+          contract.getBlobHashesList().stream()
+              .map(ByteString::toByteArray)
+              .collect(Collectors.toList()));
+    }
   }
 
   public long getAccountEnergyLimitWithFixRatio(AccountCapsule account, long feeLimit,

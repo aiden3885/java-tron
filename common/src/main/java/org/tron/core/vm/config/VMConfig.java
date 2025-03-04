@@ -154,9 +154,10 @@ public class VMConfig {
     ALLOW_STRICT_MATH = allow == 1;
   }
 
-  public static void initAllow4844(long allow) {
+  public static void initAllowBlobTx(long allow) {
     ALLOW_BLOB_TX = allow == 1;
   }
+
   public static void initAllowTvmCancun(long allow) {
     ALLOW_TVM_CANCUN = allow == 1;
   }

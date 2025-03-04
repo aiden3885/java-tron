@@ -25,8 +25,12 @@ import com.google.common.primitives.Longs;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import java.security.SignatureException;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import ethereum.ckzg4844.CKZG4844JNI;
 import ethereum.ckzg4844.CKZGException;
 import ethereum.ckzg4844.KZG4844;
@@ -53,7 +57,6 @@ import org.tron.core.exception.ContractValidateException;
 import org.tron.core.exception.PermissionException;
 import org.tron.core.exception.SignatureFormatException;
 import org.tron.core.store.DynamicPropertiesStore;
-import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Permission.PermissionType;
 import org.tron.protos.Protocol.Transaction;
@@ -61,6 +64,7 @@ import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.Transaction.Result.contractResult;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 import org.tron.protos.Protocol.BlobTxSidecar;
+import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
 import org.tron.protos.contract.BalanceContract.DelegateResourceContract;
@@ -193,7 +197,6 @@ public class TransactionUtil {
     return "get" + CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, originName)
         .replace("_", "");
   }
-
 
   public TransactionSignWeight getTransactionSignWeight(Transaction trx) {
     TransactionSignWeight.Builder tswBuilder = TransactionSignWeight.newBuilder();
@@ -343,34 +346,38 @@ public class TransactionUtil {
     validateSidecars(blobHashes, sidecar);
   }
 
+  public static void validateBlockBlobTx(BlockCapsule block, boolean allowBlobTx)
+      throws BadBlockException, ContractValidateException {
+    List<BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
+    long blobTxCount = block.getBlobTxCount();
+    if (!allowBlobTx) {
+      if (blobTxCount > 0 || !sidecarsList.isEmpty()) {
+        throw new BadBlockException("block contains blob tx, which is not supported");
+      }
+      return;
+    }
 
-  public static void validateBlockBlobTx(BlockCapsule block) throws BadBlockException, ContractValidateException {
-    //
-    List<Protocol.BlobSidecar> sidecarsList = block.getInstance().getSidecarsList();
+    if (sidecarsList.size() != blobTxCount) {
+      throw new BadBlockException(String.format(
+          "%d blobs in block, %d blob transactions, not match", sidecarsList.size(), blobTxCount));
+    }
+
     Set<Long> txIndexSet = new HashSet<>();
-    for (Protocol.BlobSidecar blobSidecar : sidecarsList) {
+    for (BlobSidecar blobSidecar : sidecarsList) {
       long txIndex = blobSidecar.getTxIndex();
       if (txIndexSet.contains(txIndex)) {
-        throw new BadBlockException("block contain repeat blob");
+        throw new BadBlockException("block contains repeat blob");
       }
       txIndexSet.add(txIndex);
       TransactionCapsule transactionCapsule = block.getTransactions().get((int) txIndex);
       BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transactionCapsule.getInstance());
+      if (blobContract == null) {
+        throw new BadBlockException("blob sidecar and blob tx not match");
+      }
       if (blobContract.getSidecar() != null) {
         throw new BadBlockException("tx in block should not have sidecar");
       }
       validateBlobHashAndSideCar(blobContract.getBlobHashesList(), blobSidecar.getSidecar());
-    }
-
-    int count = 0;
-    for (TransactionCapsule transaction : block.getTransactions()) {
-      if (transaction.isBlobTransaction()) {
-        count++;
-      }
-    }
-
-    if (sidecarsList.size() != count) {
-      throw new BadBlockException(String.format("%d blobs in block, %d blob transactions, not match", sidecarsList.size(), count));
     }
   }
 

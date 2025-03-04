@@ -28,7 +28,6 @@ import org.tron.common.error.TronDBException;
 import org.tron.common.utils.Sha256Hash;
 import org.tron.core.capsule.BlockCapsule;
 import org.tron.core.capsule.BlockCapsule.BlockId;
-import org.tron.core.capsule.ContractCapsule;
 import org.tron.core.exception.BadItemException;
 
 @Slf4j(topic = "DB")
@@ -46,9 +45,7 @@ public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
       return;
     }
 
-    if (item.getInstance().getSidecarsCount() > 0) {
-      item = new BlockCapsule(item.getInstance().toBuilder().clearSidecars().build());
-    }
+    item = new BlockCapsule(item.getInstance().toBuilder().clearBlobSidecar().build());
     revokingDB.put(key, item.getData());
   }
 

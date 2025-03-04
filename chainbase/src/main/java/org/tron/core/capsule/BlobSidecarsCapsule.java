@@ -15,55 +15,56 @@
 
 package org.tron.core.capsule;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.common.overlay.message.Message;
 import org.tron.core.exception.BadItemException;
-import org.tron.protos.Protocol.BlobSidecar;
+import org.tron.protos.Protocol.BlobSidecars;
 
 @Slf4j(topic = "capsule")
-public class BlobSidecarCapsule implements ProtoCapsule<BlobSidecar> {
+public class BlobSidecarsCapsule implements ProtoCapsule<BlobSidecars> {
 
-  private BlobSidecar blobSidecar;
+  private BlobSidecars blobSidecars;
 
   /**
    * constructor BlobSidecarCapsule.
    */
-  public BlobSidecarCapsule(BlobSidecar blobSidecar) {
-    this.blobSidecar = blobSidecar;
+  public BlobSidecarsCapsule(BlobSidecars blobSidecars) {
+    this.blobSidecars = blobSidecars;
   }
 
   /**
    * get blobSidecar from bytes data.
    */
-  public BlobSidecarCapsule(byte[] data) throws BadItemException {
+  public BlobSidecarsCapsule(byte[] data) throws BadItemException {
     try {
-      this.blobSidecar = BlobSidecar.parseFrom(Message.getCodedInputStream(data));
+      this.blobSidecars = BlobSidecars.parseFrom(Message.getCodedInputStream(data));
     } catch (Exception e) {
       throw new BadItemException("BlobSidecar proto data parse exception");
     }
   }
 
-  public BlobSidecarCapsule(CodedInputStream codedInputStream) throws BadItemException {
+  public BlobSidecarsCapsule(CodedInputStream codedInputStream) throws BadItemException {
     try {
-      this.blobSidecar = BlobSidecar.parseFrom(codedInputStream);
+      this.blobSidecars = blobSidecars.parseFrom(codedInputStream);
     } catch (IOException e) {
       throw new BadItemException("BlobSidecar proto data parse exception");
     }
   }
 
-  public byte[] createDbKey() {
-    return (blobSidecar.getBlockNumber() + "-" + blobSidecar.getTxIndex()).getBytes();
+  public static byte[] createDbKey(long blockNum, ByteString blockHash) {
+    return (blockNum + "-" + blockHash).getBytes();
   }
 
   @Override
   public byte[] getData() {
-    return this.blobSidecar.toByteArray();
+    return this.blobSidecars.toByteArray();
   }
 
   @Override
-  public BlobSidecar getInstance() {
-    return this.blobSidecar;
+  public BlobSidecars getInstance() {
+    return this.blobSidecars;
   }
 }

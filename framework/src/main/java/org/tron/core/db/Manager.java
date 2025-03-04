@@ -1,9 +1,12 @@
 package org.tron.core.db;
 
 import static org.tron.common.math.Maths.floorDiv;
+import static org.tron.common.math.Maths.subtractExact;
 import static org.tron.common.math.Maths.max;
 import static org.tron.common.math.Maths.min;
+import static org.tron.common.math.Maths.multiplyExact;
 import static org.tron.common.utils.Commons.adjustBalance;
+import static org.tron.core.Constant.MIN_BLOCKS_FOR_BLOB_SIDECARS_REQUESTS;
 import static org.tron.core.Constant.TRANSACTION_MAX_BYTE_SIZE;
 import static org.tron.core.exception.BadBlockException.TypeEnum.CALC_MERKLE_ROOT_FAILED;
 import static org.tron.protos.Protocol.Transaction.Contract.ContractType.TransferContract;
@@ -149,7 +152,9 @@ import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.TransactionInfo;
+import org.tron.protos.Protocol.BlobSidecars;
 import org.tron.protos.contract.BalanceContract;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 
 @Slf4j(topic = "DB")
@@ -985,6 +990,49 @@ public class Manager {
     trace.getReceipt().setMemoFee(fee);
   }
 
+  public void consumeBlobFee(TransactionCapsule trx, TransactionTrace trace)
+      throws AccountResourceInsufficientException {
+    if (trx.getInstance().getRawData().getContract(0).getType()
+        != Contract.ContractType.BlobContract) {
+      return;
+    }
+
+    BlobContract blobContract =
+        ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
+    long blobCount = blobContract.getSidecar().getBlobsCount();
+    if (blobCount == 0) {
+      return;
+    }
+
+    long fee = getDynamicPropertiesStore().getBlobFee();
+    if (fee == 0) {
+      return;
+    }
+
+    boolean disableMath = getDynamicPropertiesStore().disableJavaLangMath();
+    byte[] address = TransactionCapsule.getOwner(trx.getInstance().getRawData().getContract(0));
+    AccountCapsule accountCapsule = getAccountStore().get(address);
+    long totalFee = multiplyExact(fee, blobCount, disableMath);
+    try {
+      if (accountCapsule != null) {
+        adjustBalance(getAccountStore(), accountCapsule, -totalFee, disableMath);
+
+        if (getDynamicPropertiesStore().supportBlackHoleOptimization()) {
+          getDynamicPropertiesStore().burnTrx(totalFee);
+        } else {
+          adjustBalance(getAccountStore(), this.getAccountStore().getBlackhole(), +totalFee,
+              disableMath);
+        }
+      }
+    } catch (BalanceInsufficientException e) {
+      throw new AccountResourceInsufficientException(
+          String.format("account %s insufficient balance[%d] to blob fee",
+              StringUtil.encode58Check(address), totalFee));
+    }
+
+    trace.getReceipt().setBlobFee(totalFee);
+  }
+
   public void consumeBandwidth(TransactionCapsule trx, TransactionTrace trace)
       throws ContractValidateException, AccountResourceInsufficientException,
       TooBigTransactionResultException, TooBigTransactionException {
@@ -1050,6 +1098,7 @@ public class Manager {
     processBlock(block, txs);
     chainBaseManager.getBlockStore().put(block.getBlockId().getBytes(), block);
     chainBaseManager.getBlockIndexStore().put(block.getBlockId());
+    processBlobSidecars(block);
     if (block.getTransactions().size() != 0) {
       chainBaseManager.getTransactionRetStore()
           .put(ByteArray.fromLong(block.getNum()), block.getResult());
@@ -1180,6 +1229,28 @@ public class Manager {
       }
     }
 
+  }
+
+  private void processBlobSidecars(BlockCapsule block) {
+    // save blobs
+    BlobSidecars blobSidecars = BlobSidecars.newBuilder()
+        .addAllBlobSidecar(block.getInstance().getBlobSidecarList()).build();
+    chainBaseManager.getBlobSidecarsStore().put(BlobSidecarsCapsule.createDbKey(block.getNum(),
+        block.getBlockId().getByteString()), new BlobSidecarsCapsule(blobSidecars));
+
+    // delete blobs before
+    long blockNumToDeleteBlob =
+        subtractExact(
+            block.getNum(),
+            MIN_BLOCKS_FOR_BLOB_SIDECARS_REQUESTS,
+            getDynamicPropertiesStore().disableJavaLangMath());
+    try {
+      BlockId blockId = chainBaseManager.getBlockIdByNum(blockNumToDeleteBlob);
+      chainBaseManager.getBlobSidecarsStore().delete(
+          BlobSidecarsCapsule.createDbKey(blockId.getNum(), blockId.getByteString()));
+    } catch (ItemNotFoundException e) {
+      logger.warn("Delete blobs failed, block {} not found", blockNumToDeleteBlob);
+    }
   }
 
   public List<TransactionCapsule> getVerifyTxs(BlockCapsule block) {
@@ -1495,6 +1566,7 @@ public class Manager {
     consumeBandwidth(trxCap, trace);
     consumeMultiSignFee(trxCap, trace);
     consumeMemoFee(trxCap, trace);
+    consumeBlobFee(trxCap, trace);
 
     trace.init(blockCap, eventPluginLoaded);
     trace.checkIsConstant();
@@ -1519,19 +1591,7 @@ public class Manager {
     if (getDynamicPropertiesStore().supportVM()) {
       trxCap.setResult(trace.getTransactionContext());
     }
-
-    //remove blob before saving
-    if (trxCap.isBlobTransaction()) {
-      Transaction transactionWithoutBlob = trxCap.getTransactionWithoutBlob();
-      Transaction old = trxCap.getInstance();
-      trxCap.setTransaction(transactionWithoutBlob);
-      chainBaseManager.getTransactionStore().put(trxCap.getTransactionId().getBytes(), trxCap);
-      trxCap.setTransaction(old);
-    }
-    else {
-      chainBaseManager.getTransactionStore().put(trxCap.getTransactionId().getBytes(), trxCap);
-    }
-
+    chainBaseManager.getTransactionStore().put(trxCap.getTransactionId().getBytes(), trxCap);
 
     Optional.ofNullable(transactionCache)
         .ifPresent(t -> t.put(trxCap.getTransactionId().getBytes(),
@@ -1824,10 +1884,8 @@ public class Manager {
       }
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
-      org.tron.core.utils.TransactionUtil.validateBlockBlobTx(block);
-    }
-
+    org.tron.core.utils.TransactionUtil.validateBlockBlobTx(
+        block, chainBaseManager.getDynamicPropertiesStore().allowBlobTx());
 
     TransactionRetCapsule transactionRetCapsule =
         new TransactionRetCapsule(block);

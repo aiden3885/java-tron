@@ -42,9 +42,10 @@ import org.tron.core.exception.BadItemException;
 import org.tron.core.exception.ValidateSignatureException;
 import org.tron.core.store.AccountStore;
 import org.tron.core.store.DynamicPropertiesStore;
-import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Block;
 import org.tron.protos.Protocol.BlockHeader;
+import org.tron.protos.Protocol.BlobTxSidecar;
+import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.Protocol.Transaction;
 
 @Slf4j(topic = "capsule")
@@ -337,19 +338,23 @@ public class BlockCapsule implements ProtoCapsule<Block> {
     return toStringBuff.toString();
   }
 
+  public long getBlobTxCount() {
+    return getTransactions().stream().filter(TransactionCapsule::isBlobTransaction).count();
+  }
+
   public void addBlobs(Map<TransactionCapsule.TxId, Transaction> sidecarsToBePacked) {
     for (Map.Entry<TransactionCapsule.TxId, Transaction> entry : sidecarsToBePacked.entrySet()) {
       TransactionCapsule.TxId txId = entry.getKey();
       Transaction trx = entry.getValue();
-      Protocol.BlobTxSidecar sidecar = ContractCapsule.getSideCar(trx);
-      block = block.toBuilder().addSidecars(
-              Protocol.BlobSidecar.newBuilder().
-                      setSidecar(sidecar).
-                      setBlockNumber(block.getBlockHeader().getRawData().getNumber()).
-                      setBlockHash(getBlockId().getByteString()).
-                      setTxIndex(txId.getTrxIndex()).
-                      setTxHash(txId.getTransactionId().getByteString())
-      ).build();
+      BlobTxSidecar txSidecar = ContractCapsule.getSideCar(trx);
+      BlobSidecar blobSidecar = BlobSidecar.newBuilder()
+          .setBlockNumber(getBlockId().getNum())
+          .setBlockHash(getBlockId().getByteString())
+          .setTxIndex(txId.getTrxIndex())
+          .setTxHash(txId.getTransactionId().getByteString())
+          .setSidecar(txSidecar)
+          .build();
+      block = block.toBuilder().addBlobSidecar(blobSidecar).build();
     }
   }
 

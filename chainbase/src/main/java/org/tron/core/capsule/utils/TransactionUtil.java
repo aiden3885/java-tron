@@ -74,7 +74,7 @@ public class TransactionUtil {
     ProgramResult programResult = trace.getRuntimeResult();
     long fee = programResult.getRet().getFee() + traceReceipt.getEnergyFee()
         + traceReceipt.getNetFee() + traceReceipt.getMultiSignFee()
-        + traceReceipt.getMemoFee();
+        + traceReceipt.getMemoFee() + traceReceipt.getBlobFee();
 
     boolean supportTransactionFeePool = trace.getTransactionContext().getStoreFactory()
         .getChainBaseManager().getDynamicPropertiesStore().supportTransactionFeePool();

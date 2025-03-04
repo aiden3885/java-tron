@@ -101,6 +101,10 @@ public class ReceiptCapsule {
   @Setter
   private long originEnergyMergedWindowSize;
 
+  @Getter
+  @Setter
+  private long blobFee;
+
   private Sha256Hash receiptAddress;
 
   public ReceiptCapsule(ResourceReceipt data, Sha256Hash receiptAddress) {

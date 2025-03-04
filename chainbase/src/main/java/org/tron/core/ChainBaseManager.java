@@ -20,6 +20,7 @@ import org.tron.core.capsule.BlockCapsule.BlockId;
 import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.capsule.utils.AssetUtil;
 import org.tron.core.capsule.utils.BlockUtil;
+import org.tron.core.db.BlobSidecarsStore;
 import org.tron.core.db.BlockIndexStore;
 import org.tron.core.db.BlockStore;
 import org.tron.core.db.CommonDataBase;
@@ -232,6 +233,10 @@ public class ChainBaseManager {
   @Autowired
   @Getter
   private SectionBloomStore sectionBloomStore;
+
+  @Autowired
+  @Getter
+  private BlobSidecarsStore blobSidecarsStore;
 
   @Autowired
   private DbStatService dbStatService;

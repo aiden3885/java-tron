@@ -377,7 +377,7 @@ message Transaction {
       DelegateResourceContract = 57;
       UnDelegateResourceContract = 58;
       CancelAllUnfreezeV2Contract = 59;
-      BlobContract=60;
+      BlobContract = 60;
     }
     ContractType type = 1;
     google.protobuf.Any parameter = 2;
@@ -522,7 +522,7 @@ message BlockHeader {
 message Block {
   repeated Transaction transactions = 1;
   BlockHeader block_header = 2;
-  repeated BlobSidecar sidecars = 3;
+  repeated BlobSidecar blob_sidecar = 3;
 }
 
 message ChainInventory {
@@ -901,9 +901,14 @@ message BlobTxSidecar {
 }
 
 message BlobSidecar {
-  BlobTxSidecar sidecar = 1;
-  int64 blockNumber = 2;
-  bytes blockHash = 3;
-  int64 txIndex = 4;
-  bytes txHash = 5;
+  int64 blockNumber = 1;
+  bytes blockHash = 2;
+  int64 txIndex = 3;
+  bytes txHash = 4;
+  BlobTxSidecar sidecar = 5;
+}
+
+// for store
+message BlobSidecars {
+  repeated BlobSidecar blob_sidecar = 1;
 }

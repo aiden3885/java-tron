@@ -232,7 +232,7 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
 
   private static final byte[] ALLOW_BLOB_TX = "ALLOW_BLOB_TX".getBytes();
 
-
+  private static final byte[] BLOB_FEE = "BLOB_FEE".getBytes();
 
   @Autowired
   private DynamicPropertiesStore(@Value("properties") String dbName) {
@@ -2939,14 +2939,25 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
 
   public void saveAllowBlobTx(long allowBlobTx) {
     this.put(ALLOW_BLOB_TX,
-            new BytesCapsule(ByteArray.fromLong(allowBlobTx)));
+        new BytesCapsule(ByteArray.fromLong(allowBlobTx)));
   }
 
   public long getAllowBlobTx() {
     return Optional.ofNullable(getUnchecked(ALLOW_BLOB_TX))
-            .map(BytesCapsule::getData)
-            .map(ByteArray::toLong)
-            .orElse(CommonParameter.getInstance().getAllowBlobTx());
+        .map(BytesCapsule::getData)
+        .map(ByteArray::toLong)
+        .orElse(CommonParameter.getInstance().getAllowBlobTx());
+  }
+
+  public void saveBlobFee(long value) {
+    this.put(BLOB_FEE, new BytesCapsule(ByteArray.fromLong(value)));
+  }
+
+  public long getBlobFee() {
+    return Optional.ofNullable(getUnchecked(BLOB_FEE))
+        .map(BytesCapsule::getData)
+        .map(ByteArray::toLong)
+        .orElse(CommonParameter.getInstance().getBlobFee());
   }
 
     public boolean allowBlobTx() {

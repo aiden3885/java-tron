@@ -827,15 +827,26 @@ public class ProposalUtil {
       case ALLOW_BLOB_TX: {
         if (!forkController.pass(ForkBlockVersionEnum.VERSION_4_8_0)) {
           throw new ContractValidateException(
-                  "Bad chain parameter id [ALLOW_4844]");
+                  "Bad chain parameter id [ALLOW_BLOB_TX]");
         }
         if (dynamicPropertiesStore.getAllowBlobTx() == 1) {
           throw new ContractValidateException(
-                  "[ALLOW_4844] has been valid, no need to propose again");
+                  "[ALLOW_BLOB_TX] has been valid, no need to propose again");
         }
         if (value != 1) {
           throw new ContractValidateException(
-                  "This value[Allow_4844] is only allowed to be 1");
+                  "This value[ALLOW_BLOB_TX] is only allowed to be 1");
+        }
+        break;
+      }
+      case BLOB_FEE: {
+        if (!forkController.pass(ForkBlockVersionEnum.VERSION_4_8_0)) {
+          throw new ContractValidateException(
+              "Bad chain parameter id [BLOB_FEE]");
+        }
+        if (value < 0 || value > 1_000_000_000) {
+          throw new ContractValidateException(
+              "This value[BLOB_FEE] is only allowed to be in the range 0-1000_000_000");
         }
         break;
       }
@@ -919,9 +930,10 @@ public class ProposalUtil {
     ALLOW_ENERGY_ADJUSTMENT(81), // 0, 1
     MAX_CREATE_ACCOUNT_TX_SIZE(82), // [500, 10000]
     ALLOW_TVM_CANCUN(83), // 0, 1
-    ALLOW_BLOB_TX(84), //0, 1
     ALLOW_STRICT_MATH(87), // 0, 1
-    CONSENSUS_LOGIC_OPTIMIZATION(88);// 0, 1
+    CONSENSUS_LOGIC_OPTIMIZATION(88), // 0, 1
+    ALLOW_BLOB_TX(89), // 0, 1
+    BLOB_FEE(90); // 0, [0, 1000_000_000]
 
     private long code;
 

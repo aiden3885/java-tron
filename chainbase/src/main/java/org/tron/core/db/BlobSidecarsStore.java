@@ -4,14 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.tron.core.capsule.BlobSidecarCapsule;
+import org.tron.core.capsule.BlobSidecarsCapsule;
 
 @Slf4j(topic = "DB")
 @Component
-public class BlobSidecarStore extends TronStoreWithRevoking<BlobSidecarCapsule> {
+public class BlobSidecarsStore extends TronStoreWithRevoking<BlobSidecarsCapsule> {
 
   @Autowired
-  private BlobSidecarStore(@Value("blob-sidecar") String dbName) {
+  private BlobSidecarsStore(@Value("blob-sidecar") String dbName) {
     super(dbName);
   }
 }
