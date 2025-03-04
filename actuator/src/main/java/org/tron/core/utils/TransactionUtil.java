@@ -60,6 +60,7 @@ import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.Transaction.Result.contractResult;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
+import org.tron.protos.Protocol.BlobTxSidecar;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
 import org.tron.protos.contract.BalanceContract.DelegateResourceContract;
@@ -284,7 +285,7 @@ public class TransactionUtil {
     return DELEGATE_COST_BASE_SIZE + addSize;
   }
 
-  private static void validateSidecars(List<ByteString> blobHashes, BlobContract.BlobTxSidecar sidecar) throws ContractValidateException {
+  private static void validateSidecars(List<ByteString> blobHashes, BlobTxSidecar sidecar) throws ContractValidateException {
     if (sidecar.getBlobsCount() != blobHashes.size()) {
       throw new ContractValidateException(String.format("invalid number of %d blobs compare to %d blob hashes", sidecar.getBlobsCount(), blobHashes.size()));
     }
