@@ -1537,7 +1537,7 @@ public class Manager {
 
     //remove blob before saving
     if (trxCap.isBlobTransaction()) {
-      Transaction transactionWithoutBlob = trxCap.getTransactionWithoutBlob():
+      Transaction transactionWithoutBlob = trxCap.getTransactionWithoutBlob();
       Transaction old = trxCap.getInstance();
       trxCap.setTransaction(transactionWithoutBlob);
       chainBaseManager.getTransactionStore().put(trxCap.getTransactionId().getBytes(), trxCap);

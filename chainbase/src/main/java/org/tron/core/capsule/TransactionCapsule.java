@@ -908,15 +908,16 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
     Transaction.Contract contract = transaction.getRawData().getContract(0);
     SmartContractOuterClass.BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transaction);
 
+
     SmartContractOuterClass.BlobContract.BlobTxSidecar sidecar = null;
-    Transaction result = Transaction.newBuilder().mergeFrom(transaction).setRawData(
+    SmartContractOuterClass.BlobContract blobContractWithoutBlob = SmartContractOuterClass.BlobContract.newBuilder().mergeFrom(blobContract).setSidecar(sidecar).build();
+
+    return Transaction.newBuilder().mergeFrom(transaction).setRawData(
             raw.newBuilder().mergeFrom(transaction.getRawData()).setContract(0,
                     Transaction.Contract.newBuilder().mergeFrom(contract).setParameter(
-                            SmartContractOuterClass.BlobContract.newBuilder().mergeFrom(blobContract).setSidecar(sidecar);
+                            Any.pack(blobContractWithoutBlob)
                     ))
-    )
-    return result;
-
+    ).build();
   }
 
   public boolean isBlobTransaction() {
