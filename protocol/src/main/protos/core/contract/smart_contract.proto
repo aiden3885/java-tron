@@ -104,11 +104,6 @@ message SmartContractDataWrapper {
 }
 
 message BlobContract {
-  message BlobTxSidecar {
-    repeated bytes blobs = 1;
-    repeated bytes commitments = 2;
-    repeated bytes proofs = 3;
-  }
   bytes owner_address = 1;
   bytes contract_address = 2;
   int64 call_value = 3;

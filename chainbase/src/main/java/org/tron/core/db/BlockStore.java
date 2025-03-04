@@ -18,6 +18,7 @@ package org.tron.core.db;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,18 @@ public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
   @Autowired
   private BlockStore(@Value("block") String dbName) {
     super(dbName);
+  }
+
+  @Override
+  public void put(byte[] key, BlockCapsule item) {
+    if (Objects.isNull(key) || Objects.isNull(item)) {
+      return;
+    }
+
+    if (item.getInstance().getSidecarsCount() > 0) {
+      item = new BlockCapsule(item.getInstance().toBuilder().clearSidecars().build());
+    }
+    revokingDB.put(key, item.getData());
   }
 
   public List<BlockCapsule> getLimitNumber(long startNumber, long limit) {
