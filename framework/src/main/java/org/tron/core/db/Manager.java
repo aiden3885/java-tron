@@ -866,7 +866,7 @@ public class Manager {
       return true;
     }
 
-    if (isBlobTransaction(trx.getInstance()) && !chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+    if (trx.isBlobTransaction() && !chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
       if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
         logger.warn("blob tx is not supported");
         return false;
@@ -930,10 +930,7 @@ public class Manager {
     return true;
   }
 
-  private boolean isBlobTransaction(Transaction transaction) {
-    Contract contract = transaction.getRawData().getContract(0);
-    return contract.getType() == Contract.ContractType.BlobContract;
-  }
+
 
   public void consumeMultiSignFee(TransactionCapsule trx, TransactionTrace trace)
       throws AccountResourceInsufficientException {
@@ -1537,7 +1534,19 @@ public class Manager {
     if (getDynamicPropertiesStore().supportVM()) {
       trxCap.setResult(trace.getTransactionContext());
     }
-    chainBaseManager.getTransactionStore().put(trxCap.getTransactionId().getBytes(), trxCap);
+
+    //remove blob before saving
+    if (trxCap.isBlobTransaction()) {
+      Transaction transactionWithoutBlob = trxCap.getTransactionWithoutBlob():
+      Transaction old = trxCap.getInstance();
+      trxCap.setTransaction(transactionWithoutBlob);
+      chainBaseManager.getTransactionStore().put(trxCap.getTransactionId().getBytes(), trxCap);
+      trxCap.setTransaction(old);
+    }
+    else {
+      chainBaseManager.getTransactionStore().put(trxCap.getTransactionId().getBytes(), trxCap);
+    }
+
 
     Optional.ofNullable(transactionCache)
         .ifPresent(t -> t.put(trxCap.getTransactionId().getBytes(),
