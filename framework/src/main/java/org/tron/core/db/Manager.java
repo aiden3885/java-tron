@@ -1824,6 +1824,11 @@ public class Manager {
       }
     }
 
+    if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      org.tron.core.utils.TransactionUtil.validateBlockBlobTx(block);
+    }
+
+
     TransactionRetCapsule transactionRetCapsule =
         new TransactionRetCapsule(block);
     try {
@@ -1844,6 +1849,7 @@ public class Manager {
         }
         accountStateCallBack.preExeTrans();
         //todo validate blob transaction, blobs is extracted from block
+
         TransactionInfo result = processTransaction(transactionCapsule, block);
         accountStateCallBack.exeTransFinish();
         if (Objects.nonNull(result)) {

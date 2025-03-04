@@ -25,10 +25,7 @@ import com.google.common.primitives.Longs;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import java.security.SignatureException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import ethereum.ckzg4844.CKZG4844JNI;
 import ethereum.ckzg4844.CKZGException;
@@ -48,12 +45,15 @@ import org.tron.common.utils.Sha256Hash;
 import org.tron.core.ChainBaseManager;
 import org.tron.core.Constant;
 import org.tron.core.capsule.AccountCapsule;
+import org.tron.core.capsule.BlockCapsule;
 import org.tron.core.capsule.ContractCapsule;
 import org.tron.core.capsule.TransactionCapsule;
+import org.tron.core.exception.BadBlockException;
 import org.tron.core.exception.ContractValidateException;
 import org.tron.core.exception.PermissionException;
 import org.tron.core.exception.SignatureFormatException;
 import org.tron.core.store.DynamicPropertiesStore;
+import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Permission.PermissionType;
 import org.tron.protos.Protocol.Transaction;
@@ -194,6 +194,7 @@ public class TransactionUtil {
         .replace("_", "");
   }
 
+
   public TransactionSignWeight getTransactionSignWeight(Transaction trx) {
     TransactionSignWeight.Builder tswBuilder = TransactionSignWeight.newBuilder();
     TransactionExtention.Builder trxExBuilder = TransactionExtention.newBuilder();
@@ -324,8 +325,10 @@ public class TransactionUtil {
 
   public static void validateBlobTx(TransactionCapsule trx) throws ContractValidateException {
     BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
-    List<ByteString> blobHashes = blobContract.getBlobHashesList();
+    validateBlobHashAndSideCar(blobContract.getBlobHashesList(), blobContract.getSidecar());
+  }
 
+  private static void validateBlobHashAndSideCar(List<ByteString> blobHashes, BlobTxSidecar sidecar) throws ContractValidateException {
     // Ensure the number of items in the blob transaction and various side
     // data match up before doing any expensive validations
     if (blobHashes.isEmpty()) {
@@ -337,7 +340,38 @@ public class TransactionUtil {
     }
 
     //validate sideCars
-    validateSidecars(blobHashes, blobContract.getSidecar());
+    validateSidecars(blobHashes, sidecar);
+  }
+
+
+  public static void validateBlockBlobTx(BlockCapsule block) throws BadBlockException, ContractValidateException {
+    //
+    List<Protocol.BlobSidecar> sidecarsList = block.getInstance().getSidecarsList();
+    Set<Long> txIndexSet = new HashSet<>();
+    for (Protocol.BlobSidecar blobSidecar : sidecarsList) {
+      long txIndex = blobSidecar.getTxIndex();
+      if (txIndexSet.contains(txIndex)) {
+        throw new BadBlockException("block contain repeat blob");
+      }
+      txIndexSet.add(txIndex);
+      TransactionCapsule transactionCapsule = block.getTransactions().get((int) txIndex);
+      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transactionCapsule.getInstance());
+      if (blobContract.getSidecar() != null) {
+        throw new BadBlockException("tx in block should not have sidecar");
+      }
+      validateBlobHashAndSideCar(blobContract.getBlobHashesList(), blobSidecar.getSidecar());
+    }
+
+    int count = 0;
+    for (TransactionCapsule transaction : block.getTransactions()) {
+      if (transaction.isBlobTransaction()) {
+        count++;
+      }
+    }
+
+    if (sidecarsList.size() != count) {
+      throw new BadBlockException(String.format("%d blobs in block, %d blob transactions, not match", sidecarsList.size(), count));
+    }
   }
 
 }
