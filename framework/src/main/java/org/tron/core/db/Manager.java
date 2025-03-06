@@ -866,12 +866,7 @@ public class Manager {
       return true;
     }
 
-    if (trx.isBlobTransaction()) {
-      if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
-        throw new ContractValidateException("blob tx is not supported");
-      }
-      validateBlobTx(trx);
-    }
+    validateBlobTx(trx, 0);
 
     pushTransactionQueue.add(trx);
     Metrics.gaugeInc(MetricKeys.Gauge.MANAGER_QUEUE, 1,
@@ -1678,6 +1673,7 @@ public class Manager {
     Set<String> accountSet = new HashSet<>();
     AtomicInteger shieldedTransCounts = new AtomicInteger(0);
     List<TransactionCapsule> toBePacked = new ArrayList<>();
+    AtomicInteger packedBlobCount = new AtomicInteger(0);
 
     Map<TransactionCapsule.TxId, Transaction> blobTxToBePacked = new HashMap<>();
     int index = 0;
@@ -1720,15 +1716,11 @@ public class Manager {
         continue;
       }
 
-      if (trx.isBlobTransaction()) {
-        if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      try {
+          int newBlobCount = validateBlobTx(trx, packedBlobCount.get());
+          packedBlobCount.getAndAdd(newBlobCount);
+      } catch (ContractValidateException e) {
           continue;
-        }
-        try {
-            validateBlobTx(trx);
-        } catch (ContractValidateException e) {
-            continue;
-        }
       }
 
       if (System.currentTimeMillis() > timeout) {
@@ -2198,27 +2190,34 @@ public class Manager {
     }
   }
 
-  private void validateBlobTx(TransactionCapsule trx) throws ContractValidateException {
+  private int validateBlobTx(TransactionCapsule trx, int packedCount) throws ContractValidateException {
+    if (!trx.isBlobTransaction()) {
+      return 0;
+    }
+    if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      throw new ContractValidateException("blob tx is not supported");
+    }
     BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
-    validateBlobHashAndSideCar(blobContract.getBlobHashesList(), blobContract.getSidecar());
-  }
-
-  private void validateBlobHashAndSideCar(List<ByteString> blobHashes, Protocol.BlobTxSidecar sidecar)
-      throws ContractValidateException {
+    if (blobContract.getSidecar().getBlobsCount() == 0) {
+      throw new ContractValidateException("missing sidecar in blob transaction");
+    }
     // Ensure the number of items in the blob transaction and various side
     // data match up before doing any expensive validations
-    if (blobHashes.isEmpty()) {
+    if (blobContract.getBlobHashesList().isEmpty()) {
       throw new ContractValidateException("blobless blob transaction");
     }
-
-    if (blobHashes.size() > MAX_BLOBS_PER_BLOCK) {
+    int totalBlobCount = packedCount + blobContract.getBlobHashesList().size();
+    if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
       throw new ContractValidateException(
           String.format("too many blobs in transaction: have %d, permitted %d",
-              blobHashes.size(), MAX_BLOBS_PER_BLOCK));
+              totalBlobCount, MAX_BLOBS_PER_BLOCK));
     }
 
     //validate sideCars
-    validateSidecars(blobHashes, sidecar);
+    validateSidecars(blobContract.getBlobHashesList(), blobContract.getSidecar());
+
+    // return blob
+    return blobContract.getBlobHashesList().size();
   }
 
   private void validateBlockBlobTx(BlockCapsule block, List<TransactionCapsule> txs)
