@@ -69,8 +69,6 @@ import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 @Slf4j(topic = "VM")
 public class VMActuator implements Actuator2 {
 
-  public static final long ENERGY_PER_BLOB = 1 << 5;
-
   /* tx and block info */
   private Transaction trx;
   private BlockCapsule blockCap;
@@ -296,11 +294,6 @@ public class VMActuator implements Actuator2 {
         result.setRuntimeError(result.getException().getMessage());
       }
       logger.info("runtime result is :{}", result.getException().getMessage());
-    }
-    //use program returned fill context
-    if (TrxType.TRX_CONTRACT_BLOB_TYPE == trxType) {
-      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(context.getTrxCap().getInstance());
-      result.spendEnergy(ENERGY_PER_BLOB * blobContract.getBlobHashesCount());
     }
 
     context.setProgramResult(result);
