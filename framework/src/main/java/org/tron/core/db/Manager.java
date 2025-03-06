@@ -6,6 +6,7 @@ import static org.tron.common.math.Maths.max;
 import static org.tron.common.math.Maths.min;
 import static org.tron.common.math.Maths.multiplyExact;
 import static org.tron.common.utils.Commons.adjustBalance;
+import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
 import static org.tron.core.Constant.MIN_BLOCKS_FOR_BLOB_SIDECARS_REQUESTS;
 import static org.tron.core.Constant.TRANSACTION_MAX_BYTE_SIZE;
 import static org.tron.core.exception.BadBlockException.TypeEnum.CALC_MERKLE_ROOT_FAILED;
@@ -17,6 +18,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.ByteString;
+import ethereum.ckzg4844.CKZG4844JNI;
+import ethereum.ckzg4844.CKZGException;
+import ethereum.ckzg4844.KZG4844;
 import io.prometheus.client.Histogram;
 
 import java.util.*;
@@ -147,6 +151,7 @@ import org.tron.core.store.VotesStore;
 import org.tron.core.store.WitnessScheduleStore;
 import org.tron.core.store.WitnessStore;
 import org.tron.core.utils.TransactionRegister;
+import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.AccountType;
 import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Transaction;
@@ -863,7 +868,7 @@ public class Manager {
       if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
         throw new ContractValidateException("blob tx is not supported");
       }
-      org.tron.core.utils.TransactionUtil.validateBlobTx(trx);
+      validateBlobTx(trx);
     }
 
     pushTransactionQueue.add(trx);
@@ -1718,7 +1723,7 @@ public class Manager {
           continue;
         }
         try {
-            org.tron.core.utils.TransactionUtil.validateBlobTx(trx);
+            validateBlobTx(trx);
         } catch (ContractValidateException e) {
             continue;
         }
@@ -1884,8 +1889,7 @@ public class Manager {
       }
     }
 
-    org.tron.core.utils.TransactionUtil.validateBlockBlobTx(
-        block, chainBaseManager.getDynamicPropertiesStore().allowBlobTx());
+    validateBlockBlobTx(block);
 
     TransactionRetCapsule transactionRetCapsule =
         new TransactionRetCapsule(block);
@@ -2140,6 +2144,117 @@ public class Manager {
       }
     } finally {
       Metrics.histogramObserve(requestTimer);
+    }
+  }
+
+  private void validateSidecars(List<ByteString> blobHashes, Protocol.BlobTxSidecar sidecar)
+      throws ContractValidateException {
+    if (sidecar.getBlobsCount() != blobHashes.size()) {
+      throw new ContractValidateException(
+          String.format("invalid number of %d blobs compare to %d blob hashes",
+              sidecar.getBlobsCount(), blobHashes.size()));
+    }
+
+    if (sidecar.getCommitmentsCount() != blobHashes.size()) {
+      throw new ContractValidateException(
+          String.format("invalid number of %d commitments compare to %d blob hashes",
+              sidecar.getBlobsCount(), blobHashes.size()));
+    }
+
+    if (sidecar.getProofsCount() != blobHashes.size()) {
+      throw new ContractValidateException(
+          String.format("invalid number of %d proofs compare to %d blob hashes",
+              sidecar.getProofsCount(), blobHashes.size()));
+    }
+
+    // Blob quantities match up, validate that the provers match with the
+    // transaction hash before getting to the cryptography
+    for (int i = 0; i < blobHashes.size(); i++) {
+      byte[] blobHashBytes = blobHashes.get(i).toByteArray();
+      byte[] computed =  KZG4844.calcBlobHashV1(sidecar.getCommitments(i).toByteArray());
+      if (!Arrays.equals(blobHashBytes, computed)) {
+        throw new ContractValidateException(
+            String.format("blob %d, computed hash %s mismatches transaction one %s",
+                i, Hex.toHexString(computed), Hex.toHexString(blobHashBytes)));
+      }
+    }
+
+    // Blob commitments match with the hashes in the transaction, verify the
+    // blobs themselves via KZG
+    for (int i = 0; i < blobHashes.size(); i++) {
+      try {
+        if (!CKZG4844JNI.verifyBlobKzgProof(
+            blobHashes.get(i).toByteArray(),
+            sidecar.getCommitments(i).toByteArray(),
+            sidecar.getProofs(i).toByteArray())) {
+          throw new ContractValidateException(String.format("invalid blob %d", i));
+        }
+      }
+      catch (CKZGException e) {
+        throw new ContractValidateException(String.format("invalid blob %d", i));
+      }
+    }
+  }
+
+  private void validateBlobTx(TransactionCapsule trx) throws ContractValidateException {
+    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
+    validateBlobHashAndSideCar(blobContract.getBlobHashesList(), blobContract.getSidecar());
+  }
+
+  private void validateBlobHashAndSideCar(List<ByteString> blobHashes, Protocol.BlobTxSidecar sidecar)
+      throws ContractValidateException {
+    // Ensure the number of items in the blob transaction and various side
+    // data match up before doing any expensive validations
+    if (blobHashes.isEmpty()) {
+      throw new ContractValidateException("blobless blob transaction");
+    }
+
+    if (blobHashes.size() > MAX_BLOBS_PER_BLOCK) {
+      throw new ContractValidateException(
+          String.format("too many blobs in transaction: have %d, permitted %d",
+              blobHashes.size(), MAX_BLOBS_PER_BLOCK));
+    }
+
+    //validate sideCars
+    validateSidecars(blobHashes, sidecar);
+  }
+
+  private void validateBlockBlobTx(BlockCapsule block)
+      throws BadBlockException, ContractValidateException {
+    List<Protocol.BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
+    long blobTxCount = block.getBlobTxCount();
+    if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      if (blobTxCount > 0 || !sidecarsList.isEmpty()) {
+        throw new BadBlockException("block contains blob tx, which is not supported");
+      }
+      return;
+    }
+
+    if (sidecarsList.size() != blobTxCount) {
+      throw new BadBlockException(String.format(
+          "%d blobs in block, %d blob transactions, not match", sidecarsList.size(), blobTxCount));
+    }
+
+    if (blobTxCount > MAX_BLOBS_PER_BLOCK) {
+      throw new BadBlockException("The number of blobs exceeds the maximum value");
+    }
+
+    Set<Long> txIndexSet = new HashSet<>();
+    for (Protocol.BlobSidecar blobSidecar : sidecarsList) {
+      long txIndex = blobSidecar.getTxIndex();
+      if (txIndexSet.contains(txIndex)) {
+        throw new BadBlockException("block contains repeat blob");
+      }
+      txIndexSet.add(txIndex);
+      TransactionCapsule transactionCapsule = block.getTransactions().get((int) txIndex);
+      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transactionCapsule.getInstance());
+      if (blobContract == null) {
+        throw new BadBlockException("blob sidecar and blob tx not match");
+      }
+      if (blobContract.getSidecar() != null) {
+        throw new BadBlockException("tx in block should not have sidecar");
+      }
+      validateBlobHashAndSideCar(blobContract.getBlobHashesList(), blobSidecar.getSidecar());
     }
   }
 
