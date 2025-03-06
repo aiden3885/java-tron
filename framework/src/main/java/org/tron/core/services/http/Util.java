@@ -41,6 +41,7 @@ import org.tron.api.GrpcAPI.TransactionExtention;
 import org.tron.api.GrpcAPI.TransactionIdList;
 import org.tron.api.GrpcAPI.TransactionList;
 import org.tron.api.GrpcAPI.TransactionSignWeight;
+import org.tron.api.GrpcAPI.BlobSidecarResponseMessage;
 import org.tron.common.crypto.Hash;
 import org.tron.common.parameter.CommonParameter;
 import org.tron.common.utils.ByteArray;
@@ -506,6 +507,13 @@ public class Util {
     } else {
       response.getWriter().println("{}");
     }
+  }
+
+  public static String printBlobResponse(
+      BlobSidecarResponseMessage blobSidecarResponseMessage) {
+    JSONObject jsonObject = JSONObject.parseObject(
+        JsonFormat.printToString(blobSidecarResponseMessage, true));
+    return jsonObject.toJSONString();
   }
 
   public static byte[] getAddress(HttpServletRequest request) throws Exception {

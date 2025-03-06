@@ -20,6 +20,7 @@ import org.tron.core.services.interfaceOnPBFT.http.GetAssetIssueListByNameOnPBFT
 import org.tron.core.services.interfaceOnPBFT.http.GetAssetIssueListOnPBFTServlet;
 import org.tron.core.services.interfaceOnPBFT.http.GetAvailableUnfreezeCountOnPBFTServlet;
 import org.tron.core.services.interfaceOnPBFT.http.GetBandwidthPricesOnPBFTServlet;
+import org.tron.core.services.interfaceOnPBFT.http.GetBlobSidecarsOnPBFTServlet;
 import org.tron.core.services.interfaceOnPBFT.http.GetBlockByIdOnPBFTServlet;
 import org.tron.core.services.interfaceOnPBFT.http.GetBlockByLatestNumOnPBFTServlet;
 import org.tron.core.services.interfaceOnPBFT.http.GetBlockByLimitNextOnPBFTServlet;
@@ -168,6 +169,8 @@ public class HttpApiOnPBFTService extends HttpService {
       getDelegatedResourceAccountIndexV2OnPBFTServlet;
   @Autowired
   private GetDelegatedResourceV2OnPBFTServlet getDelegatedResourceV2OnPBFTServlet;
+  @Autowired
+  private GetBlobSidecarsOnPBFTServlet getBlobSidecarsOnPBFTServlet;
 
   public HttpApiOnPBFTService() {
     port = Args.getInstance().getPBFTHttpPort();
@@ -261,6 +264,8 @@ public class HttpApiOnPBFTService extends HttpService {
         "/getdelegatedresourceaccountindexv2");
     context.addServlet(new ServletHolder(getDelegatedResourceV2OnPBFTServlet),
         "/getdelegatedresourcev2");
+    context.addServlet(new ServletHolder(getBlobSidecarsOnPBFTServlet),
+        "/getblobsidecars");
   }
 
   @Override

@@ -22,6 +22,7 @@ import org.tron.core.services.interfaceOnSolidity.http.GetAssetIssueListByNameOn
 import org.tron.core.services.interfaceOnSolidity.http.GetAssetIssueListOnSolidityServlet;
 import org.tron.core.services.interfaceOnSolidity.http.GetAvailableUnfreezeCountOnSolidityServlet;
 import org.tron.core.services.interfaceOnSolidity.http.GetBandwidthPricesOnSolidityServlet;
+import org.tron.core.services.interfaceOnSolidity.http.GetBlobSidecarsOnSolidityServlet;
 import org.tron.core.services.interfaceOnSolidity.http.GetBlockByIdOnSolidityServlet;
 import org.tron.core.services.interfaceOnSolidity.http.GetBlockByLatestNumOnSolidityServlet;
 import org.tron.core.services.interfaceOnSolidity.http.GetBlockByLimitNextOnSolidityServlet;
@@ -177,6 +178,9 @@ public class HttpApiOnSolidityService extends HttpService {
   @Autowired
   private GetBlockOnSolidityServlet getBlockOnSolidityServlet;
 
+  @Autowired
+  private GetBlobSidecarsOnSolidityServlet getBlobSidecarsOnSolidityServlet;
+
   public HttpApiOnSolidityService() {
     port = Args.getInstance().getSolidityHttpPort();
     enable = isFullNode() && Args.getInstance().isSolidityNodeHttpEnable();
@@ -285,6 +289,9 @@ public class HttpApiOnSolidityService extends HttpService {
 
     context.addServlet(new ServletHolder(getBlockOnSolidityServlet),
         "/walletsolidity/getblock");
+
+    context.addServlet(new ServletHolder(getBlobSidecarsOnSolidityServlet),
+        "/walletsolidity/getblobsidecars");
 
   }
 

@@ -20,6 +20,7 @@ import org.tron.core.services.http.GetAssetIssueListByNameServlet;
 import org.tron.core.services.http.GetAssetIssueListServlet;
 import org.tron.core.services.http.GetAvailableUnfreezeCountServlet;
 import org.tron.core.services.http.GetBandwidthPricesServlet;
+import org.tron.core.services.http.GetBlobSidecarsServlet;
 import org.tron.core.services.http.GetBlockByIdServlet;
 import org.tron.core.services.http.GetBlockByLatestNumServlet;
 import org.tron.core.services.http.GetBlockByLimitNextServlet;
@@ -161,6 +162,8 @@ public class SolidityNodeHttpApiService extends HttpService {
   private GetBandwidthPricesServlet getBandwidthPricesServlet;
   @Autowired
   private GetEnergyPricesServlet getEnergyPricesServlet;
+  @Autowired
+  private GetBlobSidecarsServlet getBlobSidecarsServlet;
 
 
   public SolidityNodeHttpApiService() {
@@ -271,6 +274,8 @@ public class SolidityNodeHttpApiService extends HttpService {
         "/walletsolidity/getbandwidthprices");
     context.addServlet(new ServletHolder(getEnergyPricesServlet),
         "/walletsolidity/getenergyprices");
+    context.addServlet(new ServletHolder(getBlobSidecarsServlet),
+        "/walletsolidity/getblobsidecars");
   }
 
   @Override

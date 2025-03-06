@@ -1127,6 +1127,17 @@ message PricesResponseMessage {
   string prices = 1;
 }
 
+message BlobSidecarReply {
+  int64 index = 1;
+  bytes blob = 2;
+  bytes kzg_commitment = 3;
+  bytes kzg_proof = 4;
+}
+
+message BlobSidecarResponseMessage {
+  repeated BlobSidecarReply data = 1;
+}
+
 // Gossip node list
 message NodeList {
   repeated Node nodes = 1;

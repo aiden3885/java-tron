@@ -114,12 +114,7 @@ public class BandwidthProcessor extends ResourceProcessor {
     long bytesSize;
 
     if (chainBaseManager.getDynamicPropertiesStore().supportVM()) {
-      if (trx.isBlobTransaction()) {
-        bytesSize = trx.getTransactionWithoutBlob()
-            .toBuilder().clearRet().build().getSerializedSize();
-      } else {
-        bytesSize = trx.getInstance().toBuilder().clearRet().build().getSerializedSize();
-      }
+      bytesSize = trx.getInstance().toBuilder().clearRet().build().getSerializedSize();
     } else {
       bytesSize = trx.getSerializedSize();
     }

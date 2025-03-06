@@ -52,6 +52,7 @@ import java.math.BigInteger;
 import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -92,6 +93,8 @@ import org.tron.api.GrpcAPI.NoteParameters;
 import org.tron.api.GrpcAPI.NumberMessage;
 import org.tron.api.GrpcAPI.PaymentAddressMessage;
 import org.tron.api.GrpcAPI.PricesResponseMessage;
+import org.tron.api.GrpcAPI.BlobSidecarReply;
+import org.tron.api.GrpcAPI.BlobSidecarResponseMessage;
 import org.tron.api.GrpcAPI.PrivateParameters;
 import org.tron.api.GrpcAPI.PrivateParametersWithoutAsk;
 import org.tron.api.GrpcAPI.PrivateShieldedTRC20Parameters;
@@ -140,6 +143,7 @@ import org.tron.core.actuator.VMActuator;
 import org.tron.core.capsule.AbiCapsule;
 import org.tron.core.capsule.AccountCapsule;
 import org.tron.core.capsule.AssetIssueCapsule;
+import org.tron.core.capsule.BlobSidecarsCapsule;
 import org.tron.core.capsule.BlockBalanceTraceCapsule;
 import org.tron.core.capsule.BlockCapsule;
 import org.tron.core.capsule.BlockCapsule.BlockId;
@@ -234,6 +238,7 @@ import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.Transaction.Contract.ContractType;
 import org.tron.protos.Protocol.Transaction.Result.code;
 import org.tron.protos.Protocol.TransactionInfo;
+import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.contract.AssetIssueContractOuterClass.AssetIssueContract;
 import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.BalanceContract.BlockBalanceTrace;
@@ -4518,6 +4523,48 @@ public class Wallet {
       return builder.build();
     } catch (Exception e) {
       logger.error("GetMemoFeePrices failed", e);
+    }
+    return null;
+  }
+
+  public BlobSidecarResponseMessage getBlobSidecars(long blockNum, List<Integer> indices) {
+    BlobSidecarResponseMessage.Builder builder = BlobSidecarResponseMessage.newBuilder();
+    try {
+      indices.sort(Comparator.comparingInt(Integer::intValue));
+      BlockId blockId = chainBaseManager.getBlockIdByNum(blockNum);
+      BlobSidecarsCapsule blobSidecars = chainBaseManager.getBlobSidecarsStore().get(
+          BlobSidecarsCapsule.createDbKey(blockId.getNum(), blockId.getByteString()));
+
+      int idx = 0;
+      int curIdx = 0;
+      boolean fullBlob = indices.isEmpty();
+      List<BlobSidecarReply> blobResponse = new ArrayList<>();
+
+      for (BlobSidecar blobSidecar : blobSidecars.getInstance().getBlobSidecarList()) {
+        for (int i = 0; i < blobSidecar.getSidecar().getBlobsCount(); i++) {
+          if (!fullBlob && curIdx >= indices.size()) {
+            break;
+          }
+
+          if (fullBlob || idx == indices.get(curIdx)) {
+            BlobSidecarReply blobReply =
+                BlobSidecarReply.newBuilder()
+                    .setIndex(idx)
+                    .setBlob(blobSidecar.getSidecar().getBlobs(i))
+                    .setKzgCommitment(blobSidecar.getSidecar().getCommitments(i))
+                    .setKzgProof(blobSidecar.getSidecar().getProofs(i))
+                    .build();
+            blobResponse.add(blobReply);
+            curIdx++;
+          }
+          idx++;
+        }
+      }
+
+      builder.addAllData(blobResponse);
+      return builder.build();
+    } catch (Exception e) {
+      logger.error("getBlobSidecars failed, block num {}, indices {}", blockNum, indices, e);
     }
     return null;
   }
