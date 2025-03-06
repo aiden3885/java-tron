@@ -2209,6 +2209,7 @@ public class PrecompiledContracts {
     private static final byte BLOB_COMMITMENT_VERSION_KZG = 0x01;
     private static final byte[] BLOB_PRECOMPILED_RETURN_VALUE = Hex.decode(
         "000000000000000000000000000000000000000000000000000000000000100073eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");
+    private static final String SETUP_FILE_PATH = "/kzg-trusted-setups/trusted_setup.txt";
 
     public static void init(String trustedSetupFile) {
       CKZG4844JNI.loadNativeLibrary();
@@ -2216,8 +2217,7 @@ public class PrecompiledContracts {
     }
 
     public static void init() {
-      String trustedSetupResourceName = "/kzg-trusted-setups/trusted_setup.txt";
-      init(trustedSetupResourceName);
+      init(SETUP_FILE_PATH);
     }
 
     public static void freeSetup() {

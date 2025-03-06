@@ -656,4 +656,15 @@ public class TvmTestUtils {
     builder.setCallValue(callValue);
     return builder.build();
   }
+
+  public static Transaction createDefaultTransaction() {
+    Transaction trx = Transaction.getDefaultInstance();
+    return trx.toBuilder()
+        .setRawData(
+            Transaction.raw.getDefaultInstance().toBuilder()
+                .addContract(
+                    Transaction.Contract.getDefaultInstance().toBuilder()
+                        .setType(ContractType.TriggerSmartContract)))
+        .build();
+  }
 }

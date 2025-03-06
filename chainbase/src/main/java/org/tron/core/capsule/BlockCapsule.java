@@ -338,10 +338,6 @@ public class BlockCapsule implements ProtoCapsule<Block> {
     return toStringBuff.toString();
   }
 
-  public long getBlobTxCount() {
-    return getTransactions().stream().filter(TransactionCapsule::isBlobTransaction).count();
-  }
-
   public void addBlobs(Map<TransactionCapsule.TxId, Transaction> sidecarsToBePacked) {
     for (Map.Entry<TransactionCapsule.TxId, Transaction> entry : sidecarsToBePacked.entrySet()) {
       TransactionCapsule.TxId txId = entry.getKey();

@@ -1,5 +1,6 @@
 package org.tron.core.db;
 
+import static org.tron.common.math.Maths.addExact;
 import static org.tron.common.math.Maths.floorDiv;
 import static org.tron.common.math.Maths.subtractExact;
 import static org.tron.common.math.Maths.max;
@@ -157,6 +158,7 @@ import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.TransactionInfo;
+import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.Protocol.BlobSidecars;
 import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
@@ -1889,7 +1891,7 @@ public class Manager {
       }
     }
 
-    validateBlockBlobTx(block);
+    validateBlockBlobTx(block, txs);
 
     TransactionRetCapsule transactionRetCapsule =
         new TransactionRetCapsule(block);
@@ -2219,42 +2221,76 @@ public class Manager {
     validateSidecars(blobHashes, sidecar);
   }
 
-  private void validateBlockBlobTx(BlockCapsule block)
+  private void validateBlockBlobTx(BlockCapsule block, List<TransactionCapsule> txs)
       throws BadBlockException, ContractValidateException {
-    List<Protocol.BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
-    long blobTxCount = block.getBlobTxCount();
+    List<BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
+    long blobTxCount = txs.stream().filter(TransactionCapsule::isBlobTransaction).count();
     if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
       if (blobTxCount > 0 || !sidecarsList.isEmpty()) {
-        throw new BadBlockException("block contains blob tx, which is not supported");
+        throw new BadBlockException("Block has blob tx, which is not supported");
       }
       return;
     }
 
     if (sidecarsList.size() != blobTxCount) {
       throw new BadBlockException(String.format(
-          "%d blobs in block, %d blob transactions, not match", sidecarsList.size(), blobTxCount));
+          "%d blob sidecars in block, %d blob transactions, not match",
+          sidecarsList.size(), blobTxCount));
     }
 
-    if (blobTxCount > MAX_BLOBS_PER_BLOCK) {
-      throw new BadBlockException("The number of blobs exceeds the maximum value");
+    int totalBlobCount = 0;
+    for (BlobSidecar blobSidecar: sidecarsList) {
+      validateBlockBlobSidecar(blobSidecar, block.getNum(), block.getBlockId().getByteString());
+      totalBlobCount = addExact(totalBlobCount, blobSidecar.getSidecar().getBlobsCount(), true);
     }
 
-    Set<Long> txIndexSet = new HashSet<>();
-    for (Protocol.BlobSidecar blobSidecar : sidecarsList) {
-      long txIndex = blobSidecar.getTxIndex();
-      if (txIndexSet.contains(txIndex)) {
-        throw new BadBlockException("block contains repeat blob");
+    if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
+      throw new BadBlockException(
+          String.format("too many blobs in transaction: have %d, permitted %d",
+              totalBlobCount, MAX_BLOBS_PER_BLOCK));
+    }
+
+    List<TransactionCapsule> blobTxs = new ArrayList<>();
+    List<Integer> blobTxIndexes = new ArrayList<>();
+    for (int i = 0; i < txs.size(); i++) {
+      TransactionCapsule curTx = txs.get(i);
+      if (curTx.isBlobTransaction()) {
+        blobTxs.add(curTx);
+        blobTxIndexes.add(i);
       }
-      txIndexSet.add(txIndex);
-      TransactionCapsule transactionCapsule = block.getTransactions().get((int) txIndex);
-      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transactionCapsule.getInstance());
-      if (blobContract == null) {
-        throw new BadBlockException("blob sidecar and blob tx not match");
+    }
+
+    for (int i = 0; i < blobTxs.size(); i++) {
+      TransactionCapsule curTx = blobTxs.get(i);
+      if (!sidecarsList.get(i).getTxHash().equals(curTx.getTransactionId().getByteString())) {
+        throw new BadBlockException("sidecar's TxHash mismatch with expected transaction");
       }
-      if (blobContract.getSidecar() != null) {
-        throw new BadBlockException("tx in block should not have sidecar");
+      if (sidecarsList.get(i).getTxIndex() != blobTxIndexes.get(i)) {
+        throw new BadBlockException("sidecar's TxIndex mismatch with expected transaction");
       }
-      validateBlobHashAndSideCar(blobContract.getBlobHashesList(), blobSidecar.getSidecar());
+      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(curTx.getInstance());
+      if (blobContract.getSidecar().getBlobsCount() != 0) {
+        throw new BadBlockException("tx in block should not have blob");
+      }
+      validateSidecars(blobContract.getBlobHashesList(), sidecarsList.get(i).getSidecar());
+    }
+  }
+
+  private void validateBlockBlobSidecar(BlobSidecar blobSidecar, long blockNum, ByteString blockHash)
+      throws BadBlockException {
+    if (blobSidecar.getBlockNumber() != blockNum) {
+      throw new BadBlockException("BlobSidecar with wrong block number");
+    }
+    if (!blobSidecar.getBlockHash().equals(blockHash)) {
+      throw new BadBlockException("BlobSidecar with wrong block hash");
+    }
+    if (blobSidecar.getSidecar().getBlobsCount()
+        != blobSidecar.getSidecar().getCommitmentsCount()) {
+      throw new BadBlockException("BlobSidecar has wrong commitment count");
+    }
+    if (blobSidecar.getSidecar().getBlobsCount()
+        != blobSidecar.getSidecar().getProofsCount()) {
+      throw new BadBlockException("BlobSidecar has wrong proof count");
     }
   }
 
