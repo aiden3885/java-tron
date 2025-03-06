@@ -17,6 +17,7 @@ package org.tron.core.utils;
 
 import static org.tron.common.crypto.Hash.sha3omit12;
 import static org.tron.common.math.Maths.max;
+import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
 import static org.tron.core.config.Parameter.ChainConstant.DELEGATE_COST_BASE_SIZE;
 import static org.tron.core.config.Parameter.ChainConstant.TRX_PRECISION;
 
@@ -47,7 +48,6 @@ import org.tron.api.GrpcAPI.TransactionSignWeight.Result;
 import org.tron.common.parameter.CommonParameter;
 import org.tron.common.utils.Sha256Hash;
 import org.tron.core.ChainBaseManager;
-import org.tron.core.Constant;
 import org.tron.core.capsule.AccountCapsule;
 import org.tron.core.capsule.BlockCapsule;
 import org.tron.core.capsule.ContractCapsule;
@@ -289,17 +289,24 @@ public class TransactionUtil {
     return DELEGATE_COST_BASE_SIZE + addSize;
   }
 
-  private static void validateSidecars(List<ByteString> blobHashes, BlobTxSidecar sidecar) throws ContractValidateException {
+  private static void validateSidecars(List<ByteString> blobHashes, BlobTxSidecar sidecar)
+      throws ContractValidateException {
     if (sidecar.getBlobsCount() != blobHashes.size()) {
-      throw new ContractValidateException(String.format("invalid number of %d blobs compare to %d blob hashes", sidecar.getBlobsCount(), blobHashes.size()));
+      throw new ContractValidateException(
+          String.format("invalid number of %d blobs compare to %d blob hashes",
+              sidecar.getBlobsCount(), blobHashes.size()));
     }
 
     if (sidecar.getCommitmentsCount() != blobHashes.size()) {
-      throw new ContractValidateException(String.format("invalid number of %d commitments compare to %d blob hashes", sidecar.getBlobsCount(), blobHashes.size()));
+      throw new ContractValidateException(
+          String.format("invalid number of %d commitments compare to %d blob hashes",
+              sidecar.getBlobsCount(), blobHashes.size()));
     }
 
     if (sidecar.getProofsCount() != blobHashes.size()) {
-      throw new ContractValidateException(String.format("invalid number of %d proofs compare to %d blob hashes", sidecar.getProofsCount(), blobHashes.size()));
+      throw new ContractValidateException(
+          String.format("invalid number of %d proofs compare to %d blob hashes",
+              sidecar.getProofsCount(), blobHashes.size()));
     }
 
     // Blob quantities match up, validate that the provers match with the
@@ -308,7 +315,9 @@ public class TransactionUtil {
       byte[] blobHashBytes = blobHashes.get(i).toByteArray();
       byte[] computed =  KZG4844.calcBlobHashV1(sidecar.getCommitments(i).toByteArray());
       if (!Arrays.equals(blobHashBytes, computed)) {
-        throw new ContractValidateException(String.format("blob %d, computed hash %s mismatches transaction one %s",i, Hex.toHexString(computed), Hex.toHexString(blobHashBytes)));
+        throw new ContractValidateException(
+            String.format("blob %d, computed hash %s mismatches transaction one %s",
+                i, Hex.toHexString(computed), Hex.toHexString(blobHashBytes)));
       }
     }
 
@@ -316,7 +325,10 @@ public class TransactionUtil {
     // blobs themselves via KZG
     for (int i = 0; i < blobHashes.size(); i++) {
       try {
-        if (!CKZG4844JNI.verifyBlobKzgProof(blobHashes.get(i).toByteArray(), sidecar.getCommitments(i).toByteArray(), sidecar.getProofs(i).toByteArray())) {
+        if (!CKZG4844JNI.verifyBlobKzgProof(
+            blobHashes.get(i).toByteArray(),
+            sidecar.getCommitments(i).toByteArray(),
+            sidecar.getProofs(i).toByteArray())) {
           throw new ContractValidateException(String.format("invalid blob %d", i));
         }
       }
@@ -331,15 +343,18 @@ public class TransactionUtil {
     validateBlobHashAndSideCar(blobContract.getBlobHashesList(), blobContract.getSidecar());
   }
 
-  private static void validateBlobHashAndSideCar(List<ByteString> blobHashes, BlobTxSidecar sidecar) throws ContractValidateException {
+  private static void validateBlobHashAndSideCar(List<ByteString> blobHashes, BlobTxSidecar sidecar)
+      throws ContractValidateException {
     // Ensure the number of items in the blob transaction and various side
     // data match up before doing any expensive validations
     if (blobHashes.isEmpty()) {
       throw new ContractValidateException("blobless blob transaction");
     }
 
-    if (blobHashes.size() > Constant.MAX_BLOBS_PER_BLOCK) {
-      throw new ContractValidateException(String.format("too many blobs in transaction: have %d, permitted %d", blobHashes.size(), Constant.MAX_BLOBS_PER_BLOCK));
+    if (blobHashes.size() > MAX_BLOBS_PER_BLOCK) {
+      throw new ContractValidateException(
+          String.format("too many blobs in transaction: have %d, permitted %d",
+              blobHashes.size(), MAX_BLOBS_PER_BLOCK));
     }
 
     //validate sideCars
@@ -360,6 +375,10 @@ public class TransactionUtil {
     if (sidecarsList.size() != blobTxCount) {
       throw new BadBlockException(String.format(
           "%d blobs in block, %d blob transactions, not match", sidecarsList.size(), blobTxCount));
+    }
+
+    if (blobTxCount > MAX_BLOBS_PER_BLOCK) {
+      throw new BadBlockException("The number of blobs exceeds the maximum value");
     }
 
     Set<Long> txIndexSet = new HashSet<>();

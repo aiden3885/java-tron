@@ -156,7 +156,7 @@ public class VMActuator implements Actuator2 {
     switch (contractType.getNumber()) {
       case ContractType.TriggerSmartContract_VALUE:
         trxType = TrxType.TRX_CONTRACT_CALL_TYPE;
-        call(false);
+        call();
         break;
       case ContractType.CreateSmartContract_VALUE:
         trxType = TrxType.TRX_CONTRACT_CREATION_TYPE;
@@ -453,7 +453,7 @@ public class VMActuator implements Actuator2 {
    * **
    */
 
-  private void call(boolean isBlob)
+  private void call()
       throws ContractValidateException {
 
     if (!rootRepository.getDynamicPropertiesStore().supportVM()) {
@@ -474,7 +474,7 @@ public class VMActuator implements Actuator2 {
     byte[] contractAddress = contract.getContractAddress().toByteArray();
 
     ContractCapsule deployedContract = rootRepository.getContract(contractAddress);
-    if (null == deployedContract && !isBlob) {
+    if (null == deployedContract && trxType == TrxType.TRX_CONTRACT_CALL_TYPE) {
       logger.info("No contract or not a smart contract");
       throw new ContractValidateException("No contract or not a smart contract");
     }
@@ -560,7 +560,7 @@ public class VMActuator implements Actuator2 {
   }
 
   private void blob() throws ContractValidateException {
-    call(true);
+    call();
 
     if (!VMConfig.allowBlobTx()) {
       logger.info("Blob transaction is not allowed");
