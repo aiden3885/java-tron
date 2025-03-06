@@ -921,6 +921,18 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
     ).build();
   }
 
+  public Transaction getTransactionWithBlob(BlobTxSidecar blobTxSidecar) {
+    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transaction);
+    BlobContract blobContractWithBlobs = blobContract.toBuilder().setSidecar(blobTxSidecar).build();
+    return transaction.toBuilder()
+        .setRawData(
+            transaction.getRawData().toBuilder()
+                .addContract(
+                    transaction.getRawData().getContract(0).toBuilder()
+                        .setParameter(Any.pack(blobContractWithBlobs))))
+        .build();
+  }
+
   public boolean isBlobTransaction() {
     Transaction.Contract contract = transaction.getRawData().getContract(0);
     return contract.getType() == Transaction.Contract.ContractType.BlobContract;

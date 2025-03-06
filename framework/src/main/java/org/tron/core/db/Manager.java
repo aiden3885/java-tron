@@ -1565,7 +1565,13 @@ public class Manager {
         new RuntimeImpl());
     trxCap.setTrxTrace(trace);
 
-    consumeBandwidth(trxCap, trace);
+    if (trxCap.isBlobTransaction() && blockCap != null) {
+      // to calculate bandwidth fee, repack blobs back to tx
+      TransactionCapsule trxCapToConsume = getTrxCapWithBlobs(trxCap, blockCap);
+      consumeBandwidth(trxCapToConsume, trace);
+    } else {
+      consumeBandwidth(trxCap, trace);
+    }
     consumeMultiSignFee(trxCap, trace);
     consumeMemoFee(trxCap, trace);
     consumeBlobFee(trxCap, trace);
@@ -1883,7 +1889,7 @@ public class Manager {
       }
     }
 
-    validateBlockBlobTx(block, txs);
+    validateBlockBlobTx(block);
 
     TransactionRetCapsule transactionRetCapsule =
         new TransactionRetCapsule(block);
@@ -1904,8 +1910,6 @@ public class Manager {
           transactionCapsule.setVerified(true);
         }
         accountStateCallBack.preExeTrans();
-        //todo validate blob transaction, blobs is extracted from block
-
         TransactionInfo result = processTransaction(transactionCapsule, block);
         accountStateCallBack.exeTransFinish();
         if (Objects.nonNull(result)) {
@@ -2141,6 +2145,28 @@ public class Manager {
     }
   }
 
+  private TransactionCapsule getTrxCapWithBlobs(TransactionCapsule trxCap, BlockCapsule blockCap)
+      throws ContractValidateException {
+    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trxCap.getInstance());
+    if (blobContract.getSidecar().getBlobsCount() > 0) {
+      return trxCap;
+    }
+    Optional<BlobSidecar> optionalBlobSidecar =
+        blockCap.getInstance().getBlobSidecarList().stream()
+            .filter(
+                bs -> {
+                  TransactionCapsule targetTrx =
+                      blockCap.getTransactions().get((int) bs.getTxIndex());
+                  return targetTrx.getTransactionId().equals(trxCap.getTransactionId());
+                })
+            .findFirst();
+    if (!optionalBlobSidecar.isPresent()) {
+      throw new ContractValidateException("sidecar mismatch with expected transaction");
+    }
+    BlobSidecar blobSidecar = optionalBlobSidecar.get();
+    return new TransactionCapsule(trxCap.getTransactionWithBlob(blobSidecar.getSidecar()));
+  }
+
   private void validateSidecars(List<ByteString> blobHashes, Protocol.BlobTxSidecar sidecar)
       throws ContractValidateException {
     if (sidecar.getBlobsCount() != blobHashes.size()) {
@@ -2220,9 +2246,10 @@ public class Manager {
     return blobContract.getBlobHashesList().size();
   }
 
-  private void validateBlockBlobTx(BlockCapsule block, List<TransactionCapsule> txs)
+  private void validateBlockBlobTx(BlockCapsule block)
       throws BadBlockException, ContractValidateException {
     List<BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
+    List<TransactionCapsule> txs = block.getTransactions();
     long blobTxCount = txs.stream().filter(TransactionCapsule::isBlobTransaction).count();
     if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
       if (blobTxCount > 0 || !sidecarsList.isEmpty()) {
