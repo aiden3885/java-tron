@@ -544,7 +544,7 @@ public class VMActuator implements Actuator2 {
       }
     }
 
-    if (VMConfig.allowBlobTx() && program != null) {
+    if (!VMConfig.allowBlobTx() || program != null) {
       program.getResult().setContractAddress(contractAddress);
     }
     //transfer from callerAddress to targetAddress according to callValue
