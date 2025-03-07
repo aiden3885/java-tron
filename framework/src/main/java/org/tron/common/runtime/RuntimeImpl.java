@@ -7,7 +7,10 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.common.parameter.CommonParameter;
-import org.tron.core.actuator.*;
+import org.tron.core.actuator.Actuator;
+import org.tron.core.actuator.Actuator2;
+import org.tron.core.actuator.ActuatorCreator;
+import org.tron.core.actuator.VMActuator;
 import org.tron.core.db.TransactionContext;
 import org.tron.core.exception.ContractExeException;
 import org.tron.core.exception.ContractValidateException;
@@ -56,7 +59,7 @@ public class RuntimeImpl implements Runtime {
     if (actuator2 != null) {
       actuator2.validate(context);
       actuator2.execute(context);
-    } else if (actuatorList != null) {
+    } else {
       for (Actuator act : actuatorList) {
         act.validate();
         act.execute(context.getProgramResult().getRet());

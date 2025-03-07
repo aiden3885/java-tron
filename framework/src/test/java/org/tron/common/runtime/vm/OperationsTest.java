@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import org.tron.common.BaseTest;
 import org.tron.common.parameter.CommonParameter;
 import org.tron.common.runtime.InternalTransaction;
+import org.tron.common.runtime.TvmTestUtils;
 import org.tron.common.utils.DecodeUtil;
 import org.tron.core.Constant;
 import org.tron.core.config.args.Args;
@@ -110,7 +111,7 @@ public class OperationsTest extends BaseTest {
         ops, ops,
         new ProgramInvokeMockImpl(storeFactory, ops, ops),
         new InternalTransaction(
-            Protocol.Transaction.getDefaultInstance(),
+            TvmTestUtils.createDefaultTransaction(),
             InternalTransaction.TrxType.TRX_UNKNOWN_TYPE));
     context.setRootTransactionId(new byte[32]);
     return context;
@@ -120,7 +121,7 @@ public class OperationsTest extends BaseTest {
   @Test
   public void testArithmeticOperations() throws ContractValidateException {
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -206,7 +207,7 @@ public class OperationsTest extends BaseTest {
   @Test
   public void testLogicAndComparisonOperations() throws ContractValidateException {
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -314,7 +315,7 @@ public class OperationsTest extends BaseTest {
   @Test
   public void testCryptographicAndEnvironmentalOperations() throws ContractValidateException {
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -421,7 +422,7 @@ public class OperationsTest extends BaseTest {
   @Test
   public void testBlockInformationOperations() throws ContractValidateException {
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -479,7 +480,7 @@ public class OperationsTest extends BaseTest {
   @Test
   public void testMemoryStorageAndFlowOperations() throws ContractValidateException {
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -554,7 +555,7 @@ public class OperationsTest extends BaseTest {
   @Test
   public void testPushDupSwapAndLogOperations() throws ContractValidateException {
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -752,7 +753,7 @@ public class OperationsTest extends BaseTest {
   @Test
   public void testOtherOperations() throws ContractValidateException {
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -785,7 +786,7 @@ public class OperationsTest extends BaseTest {
   @Test
   public void testComplexOperations() throws ContractValidateException {
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -853,7 +854,7 @@ public class OperationsTest extends BaseTest {
     VMConfig.initAllowTvmShangHai(1);
 
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -872,7 +873,7 @@ public class OperationsTest extends BaseTest {
     invoke = new ProgramInvokeMockImpl(StoreFactory.getInstance(), new byte[0], new byte[21]);
     program = new Program(null, null, invoke,
         new InternalTransaction(
-            Protocol.Transaction.getDefaultInstance(),
+            TvmTestUtils.createDefaultTransaction(),
             InternalTransaction.TrxType.TRX_UNKNOWN_TYPE));
 
     byte[] receiver1 = generateRandomAddress();
@@ -897,7 +898,7 @@ public class OperationsTest extends BaseTest {
 
     program = new Program(null, null, invoke,
         new InternalTransaction(
-            Protocol.Transaction.getDefaultInstance(),
+            TvmTestUtils.createDefaultTransaction(),
             InternalTransaction.TrxType.TRX_UNKNOWN_TYPE));
 
     VMConfig.initAllowEnergyAdjustment(1);
@@ -916,7 +917,7 @@ public class OperationsTest extends BaseTest {
     // Build stack environment, the stack from top to bottom is 0x00, 0x80, 0x00, 0x80
     program = new Program(null, null, new ProgramInvokeMockImpl(),
         new InternalTransaction(
-            Protocol.Transaction.getDefaultInstance(),
+            TvmTestUtils.createDefaultTransaction(),
             InternalTransaction.TrxType.TRX_UNKNOWN_TYPE));
     program.stackPush(DataWord.of((byte) 0x80));
     program.stackPush(DataWord.of((byte) 0x00));
@@ -940,7 +941,7 @@ public class OperationsTest extends BaseTest {
 
     invoke = new ProgramInvokeMockImpl();
     invoke.setEnergyLimit(20000);
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
@@ -988,7 +989,7 @@ public class OperationsTest extends BaseTest {
     VMConfig.initAllowTvmCancun(1);
 
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 

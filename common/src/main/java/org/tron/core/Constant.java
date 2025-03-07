@@ -406,4 +406,5 @@ public class Constant {
 
   public static final String COMMITTEE_ALLOW_BLOB_TX = "committee.allowBlobTx";
 
+  public static final String BLOB_FEE = "committee.blobFee";
 }

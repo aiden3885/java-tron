@@ -98,13 +98,11 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
 
   @Setter
   private Transaction transaction;
-
   @Setter
   private boolean isVerified = false;
   @Setter
   @Getter
   private long blockNum = -1;
-
   @Getter
   @Setter
   private TransactionTrace trxTrace;

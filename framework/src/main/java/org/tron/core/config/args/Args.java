@@ -1,5 +1,14 @@
 package org.tron.core.config.args;
 
+import static java.lang.System.exit;
+import static org.tron.common.math.Maths.max;
+import static org.tron.common.math.Maths.min;
+import static org.tron.core.Constant.ADD_PRE_FIX_BYTE_MAINNET;
+import static org.tron.core.Constant.DYNAMIC_ENERGY_INCREASE_FACTOR_RANGE;
+import static org.tron.core.Constant.DYNAMIC_ENERGY_MAX_FACTOR_RANGE;
+import static org.tron.core.config.Parameter.ChainConstant.BLOCK_PRODUCE_TIMEOUT_PERCENT;
+import static org.tron.core.config.Parameter.ChainConstant.MAX_ACTIVE_WITNESS_NUM;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterDescription;
 import com.google.common.base.Strings;
@@ -7,6 +16,26 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
 import io.grpc.internal.GrpcUtil;
 import io.grpc.netty.NettyServerBuilder;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -47,24 +76,6 @@ import org.tron.p2p.dns.update.DnsType;
 import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.utils.NetUtil;
 import org.tron.program.Version;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.text.ParseException;
-import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
-import static java.lang.System.exit;
-import static org.tron.common.math.Maths.max;
-import static org.tron.common.math.Maths.min;
-import static org.tron.core.Constant.*;
-import static org.tron.core.config.Parameter.ChainConstant.BLOCK_PRODUCE_TIMEOUT_PERCENT;
-import static org.tron.core.config.Parameter.ChainConstant.MAX_ACTIVE_WITNESS_NUM;
 
 @Slf4j(topic = "app")
 @NoArgsConstructor
@@ -234,6 +245,7 @@ public class Args extends CommonParameter {
     PARAMETER.consensusLogicOptimization = 0;
     PARAMETER.allowTvmCancun = 0;
     PARAMETER.allowBlobTx = 0;
+    PARAMETER.blobFee = 0;
   }
 
   /**
@@ -1267,6 +1279,16 @@ public class Args extends CommonParameter {
     PARAMETER.allowBlobTx =
             config.hasPath(Constant.COMMITTEE_ALLOW_BLOB_TX) ? config
                     .getInt(Constant.COMMITTEE_ALLOW_BLOB_TX) : 0;
+
+    if (config.hasPath(Constant.BLOB_FEE)) {
+      PARAMETER.blobFee = config.getLong(Constant.BLOB_FEE);
+      if (PARAMETER.blobFee > 1_000_000_000) {
+        PARAMETER.blobFee = 1_000_000_000;
+      }
+      if (PARAMETER.blobFee < 0) {
+        PARAMETER.blobFee = 0;
+      }
+    }
 
     logConfig();
   }

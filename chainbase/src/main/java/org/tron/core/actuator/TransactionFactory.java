@@ -8,8 +8,6 @@ import org.tron.common.parameter.CommonParameter;
 import org.tron.protos.Protocol.Transaction.Contract.ContractType;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
-import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
-
 
 public class TransactionFactory {
 

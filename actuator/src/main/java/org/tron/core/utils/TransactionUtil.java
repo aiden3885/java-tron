@@ -273,5 +273,4 @@ public class TransactionUtil {
 
     return DELEGATE_COST_BASE_SIZE + addSize;
   }
-
 }

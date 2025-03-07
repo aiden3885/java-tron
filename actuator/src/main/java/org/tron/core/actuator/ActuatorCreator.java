@@ -5,13 +5,11 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.common.utils.ForkController;
 import org.tron.core.ChainBaseManager;
-import org.tron.core.Constant;
 import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.exception.ContractValidateException;
 import org.tron.core.store.StoreFactory;
 import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Transaction.Contract;
-import org.tron.protos.contract.SmartContractOuterClass;
 
 @Slf4j(topic = "actuator")
 public class ActuatorCreator {
