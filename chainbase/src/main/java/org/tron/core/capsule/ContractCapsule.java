@@ -73,6 +73,27 @@ public class ContractCapsule implements ProtoCapsule<SmartContract> {
     }
   }
 
+  public static TriggerSmartContract getCommonTriggerContractFromTransaction(Transaction trx) {
+    try {
+      Any any = trx.getRawData().getContract(0).getParameter();
+      if (any.is(TriggerSmartContract.class)) {
+        return any.unpack(TriggerSmartContract.class);
+      } else {
+        BlobContract blobContract = any.unpack(BlobContract.class);
+        return TriggerSmartContract.newBuilder()
+            .setOwnerAddress(blobContract.getOwnerAddress())
+            .setContractAddress(blobContract.getContractAddress())
+            .setCallValue(blobContract.getCallValue())
+            .setData(blobContract.getData())
+            .setCallTokenValue(blobContract.getCallTokenValue())
+            .setTokenId(blobContract.getTokenId())
+            .build();
+      }
+    } catch (InvalidProtocolBufferException e) {
+      return null;
+    }
+  }
+
   public static BlobContract getBlobContractFromTransaction(Transaction trx) {
     try {
       Any any = trx.getRawData().getContract(0).getParameter();

@@ -34,6 +34,7 @@ import org.tron.core.exception.ContractValidateException;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 public class InternalTransaction {
 
@@ -96,8 +97,7 @@ public class InternalTransaction {
       this.value = contract.getNewContract().getCallValue();
       this.data = contract.getNewContract().getBytecode().toByteArray();
       this.tokenInfo.put(String.valueOf(contract.getTokenId()), contract.getCallTokenValue());
-    } else if (trxType == TrxType.TRX_CONTRACT_CALL_TYPE
-        || trxType == TrxType.TRX_CONTRACT_BLOB_TYPE) {
+    } else if (trxType == TrxType.TRX_CONTRACT_CALL_TYPE) {
       TriggerSmartContract contract = ContractCapsule.getTriggerContractFromTransaction(trx);
       if (contract == null) {
         throw new ContractValidateException("Invalid TriggerSmartContract Protocol");
@@ -106,6 +106,18 @@ public class InternalTransaction {
       this.receiveAddress = contract.getContractAddress().toByteArray();
       this.transferToAddress = this.receiveAddress.clone();
       this.note = "call";
+      this.value = contract.getCallValue();
+      this.data = contract.getData().toByteArray();
+      this.tokenInfo.put(String.valueOf(contract.getTokenId()), contract.getCallTokenValue());
+    } else if (trxType == TrxType.TRX_CONTRACT_BLOB_TYPE) {
+      BlobContract contract = ContractCapsule.getBlobContractFromTransaction(trx);
+      if (contract == null) {
+        throw new ContractValidateException("Invalid BlobContract Protocol");
+      }
+      this.sendAddress = contract.getOwnerAddress().toByteArray();
+      this.receiveAddress = contract.getContractAddress().toByteArray();
+      this.transferToAddress = this.receiveAddress.clone();
+      this.note = "blob";
       this.value = contract.getCallValue();
       this.data = contract.getData().toByteArray();
       this.tokenInfo.put(String.valueOf(contract.getTokenId()), contract.getCallTokenValue());

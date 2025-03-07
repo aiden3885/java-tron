@@ -138,12 +138,15 @@ public class TransactionTrace {
     if (dynamicPropertiesStore.getAllowTvmConstantinople() == 1) {
       return;
     }
-    TriggerSmartContract triggerContractFromTransaction = ContractCapsule
-        .getTriggerContractFromTransaction(this.getTrx().getInstance());
     if (TRX_CONTRACT_CALL_TYPE == this.trxType || TRX_CONTRACT_BLOB_TYPE == this.trxType) {
+      TriggerSmartContract triggerContractFromTransaction = ContractCapsule
+          .getCommonTriggerContractFromTransaction(this.getTrx().getInstance());
       ContractCapsule contract = contractStore
           .get(triggerContractFromTransaction.getContractAddress().toByteArray());
       if (contract == null) {
+        if (TRX_CONTRACT_BLOB_TYPE == this.trxType) {
+          return;
+        }
         throw new ContractValidateException(String.format("contract: %s is not in contract store",
             StringUtil.encode58Check(triggerContractFromTransaction
                 .getContractAddress().toByteArray())));
@@ -235,25 +238,29 @@ public class TransactionTrace {
     byte[] callerAccount;
     long percent = 0;
     long originEnergyLimit = 0;
+    boolean disableMath = dynamicPropertiesStore.disableJavaLangMath();
     switch (trxType) {
       case TRX_CONTRACT_CREATION_TYPE:
         callerAccount = trx.getOwnerAddress();
         originAccount = callerAccount;
         break;
       case TRX_CONTRACT_CALL_TYPE:
+      case TRX_CONTRACT_BLOB_TYPE:
         TriggerSmartContract callContract = ContractCapsule
-            .getTriggerContractFromTransaction(trx.getInstance());
+            .getCommonTriggerContractFromTransaction(trx.getInstance());
         ContractCapsule contractCapsule =
             contractStore.get(callContract.getContractAddress().toByteArray());
-
-        callerAccount = callContract.getOwnerAddress().toByteArray();
-        originAccount = contractCapsule.getOriginAddress();
-        boolean disableMath = dynamicPropertiesStore.disableJavaLangMath();
-        percent = max(Constant.ONE_HUNDRED - contractCapsule.getConsumeUserResourcePercent(
-            disableMath), 0, disableMath);
-        percent = min(percent, Constant.ONE_HUNDRED,
-            disableMath);
-        originEnergyLimit = contractCapsule.getOriginEnergyLimit();
+        if (contractCapsule == null) {
+          callerAccount = trx.getOwnerAddress();
+          originAccount = callerAccount;
+        } else {
+          callerAccount = callContract.getOwnerAddress().toByteArray();
+          originAccount = contractCapsule.getOriginAddress();
+          percent = max(Constant.ONE_HUNDRED - contractCapsule.getConsumeUserResourcePercent(
+              disableMath), 0, disableMath);
+          percent = min(percent, Constant.ONE_HUNDRED, disableMath);
+          originEnergyLimit = contractCapsule.getOriginEnergyLimit();
+        }
         break;
       default:
         return;

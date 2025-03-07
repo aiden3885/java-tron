@@ -461,7 +461,7 @@ public class VMActuator implements Actuator2 {
       throw new ContractValidateException("VM work is off, need to be opened by the committee");
     }
 
-    TriggerSmartContract contract = ContractCapsule.getTriggerContractFromTransaction(trx);
+    TriggerSmartContract contract = ContractCapsule.getCommonTriggerContractFromTransaction(trx);
     if (contract == null) {
       return;
     }
