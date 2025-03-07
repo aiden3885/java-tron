@@ -10,6 +10,7 @@ import static org.tron.protos.contract.Common.ResourceCode.ENERGY;
 
 import com.google.protobuf.ByteString;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -574,11 +575,20 @@ public class VMActuator implements Actuator2 {
       return;
     }
 
+    if (contract.getBlobHashesCount() == 0) {
+      throw new ContractValidateException("Blob transaction with 0 hash is not allowed");
+    }
+
+    List<byte[]> versionHashes = new ArrayList<>();
+    for (ByteString hashStr: contract.getBlobHashesList()) {
+      byte[] hash = hashStr.toByteArray();
+      if (hash[0] != 0x01) {
+        throw new ContractValidateException("Blob hashes start with wrong version");
+      }
+      versionHashes.add(hash);
+    }
     if (program != null) {
-      program.setVersionedHashes(
-          contract.getBlobHashesList().stream()
-              .map(ByteString::toByteArray)
-              .collect(Collectors.toList()));
+      program.setVersionedHashes(versionHashes);
     }
   }
 

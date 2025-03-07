@@ -696,10 +696,10 @@ public class OperationActions {
   }
 
   public static void blobBaseFeeAction(Program program) {
-    DataWord energyFee =
-        new DataWord(program.getContractState().getDynamicPropertiesStore().getEnergyFee());
+    DataWord blobFee =
+        new DataWord(program.getContractState().getDynamicPropertiesStore().getBlobFee());
 
-    program.stackPush(energyFee);
+    program.stackPush(blobFee);
     program.step();
   }
 

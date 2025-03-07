@@ -944,8 +944,6 @@ public class Manager {
     return true;
   }
 
-
-
   public void consumeMultiSignFee(TransactionCapsule trx, TransactionTrace trace)
       throws AccountResourceInsufficientException {
     if (trx.getInstance().getSignatureCount() > 1) {
@@ -1023,7 +1021,7 @@ public class Manager {
 
     BlobContract blobContract =
         ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
-    long blobCount = blobContract.getSidecar().getBlobsCount();
+    long blobCount = blobContract.getBlobHashesCount();
     if (blobCount == 0) {
       return;
     }
@@ -1587,13 +1585,7 @@ public class Manager {
         new RuntimeImpl());
     trxCap.setTrxTrace(trace);
 
-    if (trxCap.isBlobTransaction() && blockCap != null) {
-      // to calculate bandwidth fee, repack blobs back to tx
-      TransactionCapsule trxCapToConsume = getTrxCapWithBlobs(trxCap, blockCap);
-      consumeBandwidth(trxCapToConsume, trace);
-    } else {
-      consumeBandwidth(trxCap, trace);
-    }
+    consumeBandwidth(trxCap, trace);
     consumeMultiSignFee(trxCap, trace);
     consumeMemoFee(trxCap, trace);
     consumeBlobFee(trxCap, trace);
@@ -1788,6 +1780,7 @@ public class Manager {
       try (ISession tmpSession = revokingStore.buildSession()) {
         accountStateCallBack.preExeTrans();
         processTransaction(trx, blockCapsule);
+        // todo set blob count
         accountStateCallBack.exeTransFinish();
         tmpSession.merge();
 
@@ -1911,7 +1904,9 @@ public class Manager {
       }
     }
 
-    validateBlockBlobTx(block);
+    if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      validateBlockBlobTx(block);
+    }
 
     TransactionRetCapsule transactionRetCapsule =
         new TransactionRetCapsule(block);
@@ -2167,28 +2162,6 @@ public class Manager {
     }
   }
 
-  private TransactionCapsule getTrxCapWithBlobs(TransactionCapsule trxCap, BlockCapsule blockCap)
-      throws ContractValidateException {
-    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trxCap.getInstance());
-    if (blobContract.getSidecar().getBlobsCount() > 0) {
-      return trxCap;
-    }
-    Optional<BlobSidecar> optionalBlobSidecar =
-        blockCap.getInstance().getBlobSidecarList().stream()
-            .filter(
-                bs -> {
-                  TransactionCapsule targetTrx =
-                      blockCap.getTransactions().get((int) bs.getTxIndex());
-                  return targetTrx.getTransactionId().equals(trxCap.getTransactionId());
-                })
-            .findFirst();
-    if (!optionalBlobSidecar.isPresent()) {
-      throw new ContractValidateException("sidecar mismatch with expected transaction");
-    }
-    BlobSidecar blobSidecar = optionalBlobSidecar.get();
-    return new TransactionCapsule(trxCap.getTransactionWithBlob(blobSidecar.getSidecar()));
-  }
-
   private void validateSidecars(List<ByteString> blobHashes, Protocol.BlobTxSidecar sidecar)
       throws ContractValidateException {
     if (sidecar.getBlobsCount() != blobHashes.size()) {
@@ -2271,15 +2244,12 @@ public class Manager {
   private void validateBlockBlobTx(BlockCapsule block)
       throws BadBlockException, ContractValidateException {
     List<BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
-    List<TransactionCapsule> txs = block.getTransactions();
-    long blobTxCount = txs.stream().filter(TransactionCapsule::isBlobTransaction).count();
-    if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
-      if (blobTxCount > 0 || !sidecarsList.isEmpty()) {
-        throw new BadBlockException("Block has blob tx, which is not supported");
-      }
+    if (sidecarsList.isEmpty()) {
       return;
     }
 
+    List<TransactionCapsule> txs = block.getTransactions();
+    long blobTxCount = txs.stream().filter(TransactionCapsule::isBlobTransaction).count();
     if (sidecarsList.size() != blobTxCount) {
       throw new BadBlockException(String.format(
           "%d blob sidecars in block, %d blob transactions, not match",

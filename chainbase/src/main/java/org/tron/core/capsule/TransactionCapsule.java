@@ -63,7 +63,6 @@ import org.tron.core.exception.TransactionExpirationException;
 import org.tron.core.exception.ValidateSignatureException;
 import org.tron.core.store.AccountStore;
 import org.tron.core.store.DynamicPropertiesStore;
-import org.tron.protos.Protocol.BlobTxSidecar;
 import org.tron.protos.Protocol.Key;
 import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Permission.PermissionType;
@@ -917,18 +916,6 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
                             Any.pack(blobContractWithoutBlob)
                     ))
     ).build();
-  }
-
-  public Transaction getTransactionWithBlob(BlobTxSidecar blobTxSidecar) {
-    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transaction);
-    BlobContract blobContractWithBlobs = blobContract.toBuilder().setSidecar(blobTxSidecar).build();
-    return transaction.toBuilder()
-        .setRawData(
-            transaction.getRawData().toBuilder()
-                .addContract(
-                    transaction.getRawData().getContract(0).toBuilder()
-                        .setParameter(Any.pack(blobContractWithBlobs))))
-        .build();
   }
 
   public boolean isBlobTransaction() {

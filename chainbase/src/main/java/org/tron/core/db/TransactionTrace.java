@@ -43,6 +43,7 @@ import org.tron.protos.Protocol.Transaction.Contract.ContractType;
 import org.tron.protos.Protocol.Transaction.Result.contractResult;
 import org.tron.protos.contract.SmartContractOuterClass.SmartContract.ABI;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 @Slf4j(topic = "DB")
 public class TransactionTrace {
@@ -244,18 +245,32 @@ public class TransactionTrace {
         originAccount = callerAccount;
         break;
       case TRX_CONTRACT_CALL_TYPE:
-      case TRX_CONTRACT_BLOB_TYPE:
         TriggerSmartContract callContract = ContractCapsule
-            .getCommonTriggerContractFromTransaction(trx.getInstance());
+            .getTriggerContractFromTransaction(trx.getInstance());
         ContractCapsule contractCapsule =
             contractStore.get(callContract.getContractAddress().toByteArray());
+
+        callerAccount = callContract.getOwnerAddress().toByteArray();
+        originAccount = contractCapsule.getOriginAddress();
+        boolean disableMath = dynamicPropertiesStore.disableJavaLangMath();
+        percent = max(Constant.ONE_HUNDRED - contractCapsule.getConsumeUserResourcePercent(
+            disableMath), 0, disableMath);
+        percent = min(percent, Constant.ONE_HUNDRED,
+            disableMath);
+        originEnergyLimit = contractCapsule.getOriginEnergyLimit();
+        break;
+      case TRX_CONTRACT_BLOB_TYPE:
+        BlobContract blobContract = ContractCapsule
+            .getBlobContractFromTransaction(trx.getInstance());
+        contractCapsule =
+            contractStore.get(blobContract.getContractAddress().toByteArray());
         if (contractCapsule == null) {
           callerAccount = trx.getOwnerAddress();
           originAccount = callerAccount;
         } else {
-          callerAccount = callContract.getOwnerAddress().toByteArray();
+          callerAccount = blobContract.getOwnerAddress().toByteArray();
           originAccount = contractCapsule.getOriginAddress();
-          boolean disableMath = dynamicPropertiesStore.disableJavaLangMath();
+          disableMath = dynamicPropertiesStore.disableJavaLangMath();
           percent = max(Constant.ONE_HUNDRED - contractCapsule.getConsumeUserResourcePercent(
               disableMath), 0, disableMath);
           percent = min(percent, Constant.ONE_HUNDRED, disableMath);

@@ -40,6 +40,7 @@ public class Constant {
   public static final long PB_DEFAULT_ENERGY_LIMIT = 0L;
   public static final long CREATOR_DEFAULT_ENERGY_LIMIT = 1000 * 10_000L;
   public static final int MAX_BLOBS_PER_BLOCK = 6;
+  // todo config
   public static final int MIN_BLOCKS_FOR_BLOB_SIDECARS_REQUESTS = 524288;
 
 
