@@ -238,7 +238,6 @@ public class TransactionTrace {
     byte[] callerAccount;
     long percent = 0;
     long originEnergyLimit = 0;
-    boolean disableMath = dynamicPropertiesStore.disableJavaLangMath();
     switch (trxType) {
       case TRX_CONTRACT_CREATION_TYPE:
         callerAccount = trx.getOwnerAddress();
@@ -256,6 +255,7 @@ public class TransactionTrace {
         } else {
           callerAccount = callContract.getOwnerAddress().toByteArray();
           originAccount = contractCapsule.getOriginAddress();
+          boolean disableMath = dynamicPropertiesStore.disableJavaLangMath();
           percent = max(Constant.ONE_HUNDRED - contractCapsule.getConsumeUserResourcePercent(
               disableMath), 0, disableMath);
           percent = min(percent, Constant.ONE_HUNDRED, disableMath);
