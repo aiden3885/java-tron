@@ -1836,9 +1836,8 @@ public class Manager {
 
     blockCapsule.addBlobs(blobTxToBePacked);
     if (!pushBackTransactions.isEmpty()) {
-      while (!pendingTransactions.isEmpty()) {
-        pushBackTransactions.add(pendingTransactions.poll());
-      }
+      pushBackTransactions.addAll(pendingTransactions);
+      pendingTransactions.clear();
       pendingTransactions.addAll(pushBackTransactions);
     }
 
