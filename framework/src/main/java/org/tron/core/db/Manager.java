@@ -888,7 +888,12 @@ public class Manager {
       return true;
     }
 
-    validateBlobTx(trx, 0);
+    int blobCount = validateBlobTx(trx, 0);
+    if (blobCount > MAX_BLOBS_PER_BLOCK) {
+      throw new ContractValidateException(
+          String.format("too many blobs in transaction: have %d, permitted %d",
+              blobCount, MAX_BLOBS_PER_BLOCK));
+    }
 
     pushTransactionQueue.add(trx);
     Metrics.gaugeInc(MetricKeys.Gauge.MANAGER_QUEUE, 1,
@@ -1255,7 +1260,7 @@ public class Manager {
 
   private void processBlobSidecars(BlockCapsule block) {
     // save blobs
-    int minBlocksForSidecars = Args.getInstance().getMinBlocksForSidecarsRequests();
+    long minBlocksForSidecars = Args.getInstance().getMinBlocksForSidecarsRequests();
     if (minBlocksForSidecars > 0) {
       BlobSidecars blobSidecars =
           BlobSidecars.newBuilder()
@@ -1711,6 +1716,7 @@ public class Manager {
     long currentSize = blockCapsule.getInstance().getSerializedSize();
     boolean isSort = Args.getInstance().isOpenTransactionSort();
     int[] logSize = new int[] {pendingTransactions.size(), rePushTransactions.size(), 0, 0};
+    BlockingQueue<TransactionCapsule> pushBackTransactions = new LinkedBlockingQueue<>();
     while (pendingTransactions.size() > 0 || rePushTransactions.size() > 0) {
       boolean fromPending = false;
       TransactionCapsule trx;
@@ -1747,11 +1753,16 @@ public class Manager {
         continue;
       }
 
+      int totalBlobCount;
       try {
-          int newBlobCount = validateBlobTx(trx, packedBlobCount.get());
-          packedBlobCount.getAndAdd(newBlobCount);
+          totalBlobCount = validateBlobTx(trx, packedBlobCount.get());
       } catch (ContractValidateException e) {
           continue;
+      }
+      if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
+        // push back to tx pool
+        pushBackTransactions.add(trx);
+        continue;
       }
 
       if (System.currentTimeMillis() > timeout) {
@@ -1791,9 +1802,9 @@ public class Manager {
       try (ISession tmpSession = revokingStore.buildSession()) {
         accountStateCallBack.preExeTrans();
         processTransaction(trx, blockCapsule);
-        // todo set blob count
         accountStateCallBack.exeTransFinish();
         tmpSession.merge();
+        packedBlobCount.set(totalBlobCount);
 
         //remove blob from transaction before save in blocks;
         if (trx.isBlobTransaction()) {
@@ -1824,6 +1835,12 @@ public class Manager {
     blockCapsule.sign(miner.getPrivateKey());
 
     blockCapsule.addBlobs(blobTxToBePacked);
+    if (!pushBackTransactions.isEmpty()) {
+      while (!pendingTransactions.isEmpty()) {
+        pushBackTransactions.add(pendingTransactions.poll());
+      }
+      pendingTransactions.addAll(pushBackTransactions);
+    }
 
     BlockCapsule capsule = new BlockCapsule(blockCapsule.getInstance());
     capsule.generatedByMyself = true;
@@ -2235,14 +2252,14 @@ public class Manager {
     }
     // Ensure the number of items in the blob transaction and various side
     // data match up before doing any expensive validations
-    if (blobContract.getBlobHashesList().isEmpty()) {
+    int blobCount = blobContract.getBlobHashesCount();
+    if (blobCount == 0) {
       throw new ContractValidateException("blobless blob transaction");
     }
-    int totalBlobCount = packedCount + blobContract.getBlobHashesList().size();
+    int totalBlobCount =
+        addExact(packedCount, blobCount, getDynamicPropertiesStore().disableJavaLangMath());
     if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
-      throw new ContractValidateException(
-          String.format("too many blobs in transaction: have %d, permitted %d",
-              totalBlobCount, MAX_BLOBS_PER_BLOCK));
+      return totalBlobCount;
     }
 
     //validate sideCars

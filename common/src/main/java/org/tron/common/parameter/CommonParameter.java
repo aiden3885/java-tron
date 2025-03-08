@@ -723,7 +723,7 @@ public class CommonParameter {
 
   @Getter
   @Setter
-  public int minBlocksForSidecarsRequests;
+  public long minBlocksForSidecarsRequests;
 
 
   private static double calcMaxTimeRatio() {
