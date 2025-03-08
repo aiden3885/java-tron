@@ -40,8 +40,7 @@ public class Constant {
   public static final long PB_DEFAULT_ENERGY_LIMIT = 0L;
   public static final long CREATOR_DEFAULT_ENERGY_LIMIT = 1000 * 10_000L;
   public static final int MAX_BLOBS_PER_BLOCK = 6;
-  // todo config
-  public static final int MIN_BLOCKS_FOR_BLOB_SIDECARS_REQUESTS = 524288;
+  public static final int MIN_BLOCKS_FOR_SIDECARS_REQUESTS = 524288;
 
 
   // Numbers
@@ -407,5 +406,7 @@ public class Constant {
 
   public static final String COMMITTEE_ALLOW_BLOB_TX = "committee.allowBlobTx";
 
-  public static final String BLOB_FEE = "committee.blobFee";
+  public static final String COMMITTEE_BLOB_FEE = "committee.blobFee";
+
+  public static final String NODE_MIN_BLOCKS_FOR_SIDECARS_REQUESTS = "node.minBlocksForSidecarsRequests";
 }

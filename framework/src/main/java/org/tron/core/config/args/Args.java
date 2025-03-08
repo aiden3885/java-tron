@@ -6,6 +6,7 @@ import static org.tron.common.math.Maths.min;
 import static org.tron.core.Constant.ADD_PRE_FIX_BYTE_MAINNET;
 import static org.tron.core.Constant.DYNAMIC_ENERGY_INCREASE_FACTOR_RANGE;
 import static org.tron.core.Constant.DYNAMIC_ENERGY_MAX_FACTOR_RANGE;
+import static org.tron.core.Constant.MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
 import static org.tron.core.config.Parameter.ChainConstant.BLOCK_PRODUCE_TIMEOUT_PERCENT;
 import static org.tron.core.config.Parameter.ChainConstant.MAX_ACTIVE_WITNESS_NUM;
 
@@ -246,6 +247,7 @@ public class Args extends CommonParameter {
     PARAMETER.allowTvmCancun = 0;
     PARAMETER.allowBlobTx = 0;
     PARAMETER.blobFee = 0;
+    PARAMETER.minBlocksForSidecarsRequests = MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
   }
 
   /**
@@ -1280,8 +1282,8 @@ public class Args extends CommonParameter {
             config.hasPath(Constant.COMMITTEE_ALLOW_BLOB_TX) ? config
                     .getInt(Constant.COMMITTEE_ALLOW_BLOB_TX) : 0;
 
-    if (config.hasPath(Constant.BLOB_FEE)) {
-      PARAMETER.blobFee = config.getLong(Constant.BLOB_FEE);
+    if (config.hasPath(Constant.COMMITTEE_BLOB_FEE)) {
+      PARAMETER.blobFee = config.getLong(Constant.COMMITTEE_BLOB_FEE);
       if (PARAMETER.blobFee > 1_000_000_000) {
         PARAMETER.blobFee = 1_000_000_000;
       }
@@ -1289,6 +1291,11 @@ public class Args extends CommonParameter {
         PARAMETER.blobFee = 0;
       }
     }
+
+    PARAMETER.minBlocksForSidecarsRequests =
+        config.hasPath(Constant.NODE_MIN_BLOCKS_FOR_SIDECARS_REQUESTS)
+            ? config.getInt(Constant.NODE_MIN_BLOCKS_FOR_SIDECARS_REQUESTS)
+            : MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
 
     logConfig();
   }

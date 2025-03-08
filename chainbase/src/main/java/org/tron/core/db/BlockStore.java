@@ -26,13 +26,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tron.common.error.TronDBException;
 import org.tron.common.utils.Sha256Hash;
+import org.tron.core.capsule.BlobSidecarsCapsule;
 import org.tron.core.capsule.BlockCapsule;
 import org.tron.core.capsule.BlockCapsule.BlockId;
 import org.tron.core.exception.BadItemException;
+import org.tron.core.exception.ItemNotFoundException;
 
 @Slf4j(topic = "DB")
 @Component
 public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
+
+  @Autowired
+  private BlobSidecarsStore blobSidecarsStore;
 
   @Autowired
   private BlockStore(@Value("block") String dbName) {
@@ -62,7 +67,18 @@ public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
     List<BlockCapsule> blocks = new ArrayList<>();
     for (byte[] bytes : values) {
       try {
-        blocks.add(new BlockCapsule(bytes));
+        BlockCapsule blockCapsule = new BlockCapsule(bytes);
+        try {
+          byte[] sidecarDbKey = BlobSidecarsCapsule.createDbKey(
+              blockCapsule.getNum(), blockCapsule.getBlockId().getByteString());
+          BlobSidecarsCapsule sidecarsCapsule = blobSidecarsStore.get(sidecarDbKey);
+          blockCapsule.addAllBlobSidecars(sidecarsCapsule);
+        } catch (BadItemException e) {
+          logger.info("Sidecar item not found: {}", e.getMessage());
+        } catch (ItemNotFoundException e) {
+          logger.error("Find sidecar bad item: {}", e.getMessage());
+        }
+        blocks.add(blockCapsule);
       } catch (BadItemException e) {
         logger.error("Find bad item: {}", e.getMessage());
         // throw new TronDBException(e);

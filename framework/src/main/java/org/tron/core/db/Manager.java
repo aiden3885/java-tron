@@ -8,7 +8,7 @@ import static org.tron.common.math.Maths.min;
 import static org.tron.common.math.Maths.multiplyExact;
 import static org.tron.common.utils.Commons.adjustBalance;
 import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
-import static org.tron.core.Constant.MIN_BLOCKS_FOR_BLOB_SIDECARS_REQUESTS;
+import static org.tron.core.Constant.MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
 import static org.tron.core.Constant.TRANSACTION_MAX_BYTE_SIZE;
 import static org.tron.core.exception.BadBlockException.TypeEnum.CALC_MERKLE_ROOT_FAILED;
 import static org.tron.protos.Protocol.Transaction.Contract.ContractType.TransferContract;
@@ -1255,23 +1255,34 @@ public class Manager {
 
   private void processBlobSidecars(BlockCapsule block) {
     // save blobs
-    BlobSidecars blobSidecars = BlobSidecars.newBuilder()
-        .addAllBlobSidecar(block.getInstance().getBlobSidecarList()).build();
-    chainBaseManager.getBlobSidecarsStore().put(BlobSidecarsCapsule.createDbKey(block.getNum(),
-        block.getBlockId().getByteString()), new BlobSidecarsCapsule(blobSidecars));
+    int minBlocksForSidecars = Args.getInstance().getMinBlocksForSidecarsRequests();
+    if (minBlocksForSidecars > 0) {
+      BlobSidecars blobSidecars =
+          BlobSidecars.newBuilder()
+              .addAllBlobSidecar(block.getInstance().getBlobSidecarList())
+              .build();
+      chainBaseManager
+          .getBlobSidecarsStore()
+          .put(
+              BlobSidecarsCapsule.createDbKey(block.getNum(), block.getBlockId().getByteString()),
+              new BlobSidecarsCapsule(blobSidecars));
 
-    // delete blobs before
-    long blockNumToDeleteBlob =
-        subtractExact(
-            block.getNum(),
-            MIN_BLOCKS_FOR_BLOB_SIDECARS_REQUESTS,
-            getDynamicPropertiesStore().disableJavaLangMath());
-    try {
-      BlockId blockId = chainBaseManager.getBlockIdByNum(blockNumToDeleteBlob);
-      chainBaseManager.getBlobSidecarsStore().delete(
-          BlobSidecarsCapsule.createDbKey(blockId.getNum(), blockId.getByteString()));
-    } catch (ItemNotFoundException e) {
-      logger.warn("Delete blobs failed, block {} not found", blockNumToDeleteBlob);
+      // delete blobs before
+      long blockNumToDeleteBlob =
+          subtractExact(
+              block.getNum(),
+              minBlocksForSidecars,
+              getDynamicPropertiesStore().disableJavaLangMath());
+      if (blockNumToDeleteBlob > 0) {
+        try {
+          BlockId blockId = chainBaseManager.getBlockIdByNum(blockNumToDeleteBlob);
+          chainBaseManager
+              .getBlobSidecarsStore()
+              .delete(BlobSidecarsCapsule.createDbKey(blockId.getNum(), blockId.getByteString()));
+        } catch (ItemNotFoundException e) {
+          logger.warn("Delete blobs failed, block {} not found", blockNumToDeleteBlob);
+        }
+      }
     }
   }
 
