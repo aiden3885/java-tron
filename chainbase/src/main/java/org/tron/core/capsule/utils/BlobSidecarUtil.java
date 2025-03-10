@@ -31,7 +31,7 @@ import org.tron.core.exception.BadBlockException;
 import org.tron.core.exception.ContractValidateException;
 import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.Protocol.BlobTxSidecar;
-import org.tron.protos.contract.SmartContractOuterClass;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 import static org.tron.common.math.Maths.addExact;
 import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
@@ -93,7 +93,7 @@ public class BlobSidecarUtil {
     if (!trx.isBlobTransaction()) {
       return 0;
     }
-    SmartContractOuterClass.BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
+    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
     if (blobContract.getSidecar().getBlobsCount() == 0) {
       throw new ContractValidateException("missing sidecar in blob transaction");
     }
@@ -161,7 +161,7 @@ public class BlobSidecarUtil {
       if (sidecarsList.get(i).getTxIndex() != blobTxIndexes.get(i)) {
         throw new BadBlockException("sidecar's TxIndex mismatch with expected transaction");
       }
-      SmartContractOuterClass.BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(curTx.getInstance());
+      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(curTx.getInstance());
       if (blobContract.getSidecar().getBlobsCount() != 0) {
         throw new BadBlockException("tx in block should not have blob");
       }
