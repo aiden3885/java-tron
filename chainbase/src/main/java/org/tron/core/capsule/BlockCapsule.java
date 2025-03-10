@@ -344,6 +344,7 @@ public class BlockCapsule implements ProtoCapsule<Block> {
   }
 
   public void addBlobs(Map<TransactionCapsule.TxId, Transaction> sidecarsToBePacked) {
+    List<BlobSidecar> sidecarsToAdd = new ArrayList<>();
     for (Map.Entry<TransactionCapsule.TxId, Transaction> entry : sidecarsToBePacked.entrySet()) {
       TransactionCapsule.TxId txId = entry.getKey();
       Transaction trx = entry.getValue();
@@ -355,8 +356,9 @@ public class BlockCapsule implements ProtoCapsule<Block> {
           .setTxHash(txId.getTransactionId().getByteString())
           .setSidecar(txSidecar)
           .build();
-      block = block.toBuilder().addBlobSidecar(blobSidecar).build();
+      sidecarsToAdd.add(blobSidecar);
     }
+    block = block.toBuilder().addAllBlobSidecar(sidecarsToAdd).build();
   }
 
   public static class BlockId extends Sha256Hash {

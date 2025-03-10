@@ -48,7 +48,7 @@ public class BlobSidecarsCapsule implements ProtoCapsule<BlobSidecars> {
 
   public BlobSidecarsCapsule(CodedInputStream codedInputStream) throws BadItemException {
     try {
-      this.blobSidecars = blobSidecars.parseFrom(codedInputStream);
+      this.blobSidecars = BlobSidecars.parseFrom(codedInputStream);
     } catch (IOException e) {
       throw new BadItemException("BlobSidecar proto data parse exception");
     }

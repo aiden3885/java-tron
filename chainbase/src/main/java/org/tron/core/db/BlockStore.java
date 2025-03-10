@@ -76,7 +76,7 @@ public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
         } catch (BadItemException e) {
           logger.info("Sidecar item not found: {}", e.getMessage());
         } catch (ItemNotFoundException e) {
-          logger.error("Find sidecar bad item: {}", e.getMessage());
+          logger.error("Find bad sidecar item: {}", e.getMessage());
         }
         blocks.add(blockCapsule);
       } catch (BadItemException e) {

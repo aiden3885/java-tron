@@ -1,6 +1,5 @@
 package org.tron.core.db;
 
-import static org.tron.common.math.Maths.addExact;
 import static org.tron.common.math.Maths.floorDiv;
 import static org.tron.common.math.Maths.subtractExact;
 import static org.tron.common.math.Maths.max;
@@ -8,7 +7,6 @@ import static org.tron.common.math.Maths.min;
 import static org.tron.common.math.Maths.multiplyExact;
 import static org.tron.common.utils.Commons.adjustBalance;
 import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
-import static org.tron.core.Constant.MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
 import static org.tron.core.Constant.TRANSACTION_MAX_BYTE_SIZE;
 import static org.tron.core.exception.BadBlockException.TypeEnum.CALC_MERKLE_ROOT_FAILED;
 import static org.tron.protos.Protocol.Transaction.Contract.ContractType.TransferContract;
@@ -19,9 +17,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 import com.google.protobuf.ByteString;
-import ethereum.ckzg4844.CKZG4844JNI;
-import ethereum.ckzg4844.CKZGException;
-import ethereum.ckzg4844.KZG4844;
 import io.prometheus.client.Histogram;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -107,6 +102,7 @@ import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.capsule.TransactionInfoCapsule;
 import org.tron.core.capsule.TransactionRetCapsule;
 import org.tron.core.capsule.WitnessCapsule;
+import org.tron.core.capsule.utils.BlobSidecarUtil;
 import org.tron.core.capsule.utils.TransactionUtil;
 import org.tron.core.config.Parameter.ChainConstant;
 import org.tron.core.config.args.Args;
@@ -174,13 +170,11 @@ import org.tron.core.store.VotesStore;
 import org.tron.core.store.WitnessScheduleStore;
 import org.tron.core.store.WitnessStore;
 import org.tron.core.utils.TransactionRegister;
-import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.AccountType;
 import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.TransactionInfo;
-import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.Protocol.BlobSidecars;
 import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
@@ -888,11 +882,14 @@ public class Manager {
       return true;
     }
 
-    int blobCount = validateBlobTx(trx, 0);
-    if (blobCount > MAX_BLOBS_PER_BLOCK) {
-      throw new ContractValidateException(
-          String.format("too many blobs in transaction: have %d, permitted %d",
-              blobCount, MAX_BLOBS_PER_BLOCK));
+    if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      int blobCount = BlobSidecarUtil.preValidateBlobTx(
+          trx, 0, getDynamicPropertiesStore().disableJavaLangMath());
+      if (blobCount > MAX_BLOBS_PER_BLOCK) {
+        throw new ContractValidateException(
+            String.format("too many blobs in transaction: have %d, permitted %d",
+                blobCount, MAX_BLOBS_PER_BLOCK));
+      }
     }
 
     pushTransactionQueue.add(trx);
@@ -1755,7 +1752,9 @@ public class Manager {
 
       int totalBlobCount;
       try {
-          totalBlobCount = validateBlobTx(trx, packedBlobCount.get());
+          totalBlobCount =
+              BlobSidecarUtil.preValidateBlobTx(trx, packedBlobCount.get(),
+                  chainBaseManager.getDynamicPropertiesStore().disableJavaLangMath());
       } catch (ContractValidateException e) {
           continue;
       }
@@ -1932,7 +1931,7 @@ public class Manager {
     }
 
     if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
-      validateBlockBlobTx(block);
+      BlobSidecarUtil.validateBlockBlobTx(block);
     }
 
     TransactionRetCapsule transactionRetCapsule =
@@ -2186,156 +2185,6 @@ public class Manager {
       }
     } finally {
       Metrics.histogramObserve(requestTimer);
-    }
-  }
-
-  private void validateSidecars(List<ByteString> blobHashes, Protocol.BlobTxSidecar sidecar)
-      throws ContractValidateException {
-    if (sidecar.getBlobsCount() != blobHashes.size()) {
-      throw new ContractValidateException(
-          String.format("invalid number of %d blobs compare to %d blob hashes",
-              sidecar.getBlobsCount(), blobHashes.size()));
-    }
-
-    if (sidecar.getCommitmentsCount() != blobHashes.size()) {
-      throw new ContractValidateException(
-          String.format("invalid number of %d commitments compare to %d blob hashes",
-              sidecar.getBlobsCount(), blobHashes.size()));
-    }
-
-    if (sidecar.getProofsCount() != blobHashes.size()) {
-      throw new ContractValidateException(
-          String.format("invalid number of %d proofs compare to %d blob hashes",
-              sidecar.getProofsCount(), blobHashes.size()));
-    }
-
-    // Blob quantities match up, validate that the provers match with the
-    // transaction hash before getting to the cryptography
-    for (int i = 0; i < blobHashes.size(); i++) {
-      byte[] blobHashBytes = blobHashes.get(i).toByteArray();
-      byte[] computed =  KZG4844.calcBlobHashV1(sidecar.getCommitments(i).toByteArray());
-      if (!Arrays.equals(blobHashBytes, computed)) {
-        throw new ContractValidateException(
-            String.format("blob %d, computed hash %s mismatches transaction one %s",
-                i, Hex.toHexString(computed), Hex.toHexString(blobHashBytes)));
-      }
-    }
-
-    // Blob commitments match with the hashes in the transaction, verify the
-    // blobs themselves via KZG
-    for (int i = 0; i < blobHashes.size(); i++) {
-      try {
-        if (!CKZG4844JNI.verifyBlobKzgProof(
-            blobHashes.get(i).toByteArray(),
-            sidecar.getCommitments(i).toByteArray(),
-            sidecar.getProofs(i).toByteArray())) {
-          throw new ContractValidateException(String.format("invalid blob %d", i));
-        }
-      }
-      catch (CKZGException e) {
-        throw new ContractValidateException(String.format("invalid blob %d", i));
-      }
-    }
-  }
-
-  private int validateBlobTx(TransactionCapsule trx, int packedCount) throws ContractValidateException {
-    if (!trx.isBlobTransaction()) {
-      return 0;
-    }
-    if (!chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
-      throw new ContractValidateException("blob tx is not supported");
-    }
-    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(trx.getInstance());
-    if (blobContract.getSidecar().getBlobsCount() == 0) {
-      throw new ContractValidateException("missing sidecar in blob transaction");
-    }
-    // Ensure the number of items in the blob transaction and various side
-    // data match up before doing any expensive validations
-    int blobCount = blobContract.getBlobHashesCount();
-    if (blobCount == 0) {
-      throw new ContractValidateException("blobless blob transaction");
-    }
-    int totalBlobCount =
-        addExact(packedCount, blobCount, getDynamicPropertiesStore().disableJavaLangMath());
-    if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
-      return totalBlobCount;
-    }
-
-    //validate sideCars
-    validateSidecars(blobContract.getBlobHashesList(), blobContract.getSidecar());
-
-    // return blob
-    return blobContract.getBlobHashesList().size();
-  }
-
-  private void validateBlockBlobTx(BlockCapsule block)
-      throws BadBlockException, ContractValidateException {
-    List<BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
-    if (sidecarsList.isEmpty()) {
-      return;
-    }
-
-    List<TransactionCapsule> txs = block.getTransactions();
-    long blobTxCount = txs.stream().filter(TransactionCapsule::isBlobTransaction).count();
-    if (sidecarsList.size() != blobTxCount) {
-      throw new BadBlockException(String.format(
-          "%d blob sidecars in block, %d blob transactions, not match",
-          sidecarsList.size(), blobTxCount));
-    }
-
-    int totalBlobCount = 0;
-    for (BlobSidecar blobSidecar: sidecarsList) {
-      validateBlockBlobSidecar(blobSidecar, block.getNum(), block.getBlockId().getByteString());
-      totalBlobCount = addExact(totalBlobCount, blobSidecar.getSidecar().getBlobsCount(), true);
-    }
-
-    if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
-      throw new BadBlockException(
-          String.format("too many blobs in transaction: have %d, permitted %d",
-              totalBlobCount, MAX_BLOBS_PER_BLOCK));
-    }
-
-    List<TransactionCapsule> blobTxs = new ArrayList<>();
-    List<Integer> blobTxIndexes = new ArrayList<>();
-    for (int i = 0; i < txs.size(); i++) {
-      TransactionCapsule curTx = txs.get(i);
-      if (curTx.isBlobTransaction()) {
-        blobTxs.add(curTx);
-        blobTxIndexes.add(i);
-      }
-    }
-
-    for (int i = 0; i < blobTxs.size(); i++) {
-      TransactionCapsule curTx = blobTxs.get(i);
-      if (!sidecarsList.get(i).getTxHash().equals(curTx.getTransactionId().getByteString())) {
-        throw new BadBlockException("sidecar's TxHash mismatch with expected transaction");
-      }
-      if (sidecarsList.get(i).getTxIndex() != blobTxIndexes.get(i)) {
-        throw new BadBlockException("sidecar's TxIndex mismatch with expected transaction");
-      }
-      BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(curTx.getInstance());
-      if (blobContract.getSidecar().getBlobsCount() != 0) {
-        throw new BadBlockException("tx in block should not have blob");
-      }
-      validateSidecars(blobContract.getBlobHashesList(), sidecarsList.get(i).getSidecar());
-    }
-  }
-
-  private void validateBlockBlobSidecar(BlobSidecar blobSidecar, long blockNum, ByteString blockHash)
-      throws BadBlockException {
-    if (blobSidecar.getBlockNumber() != blockNum) {
-      throw new BadBlockException("BlobSidecar with wrong block number");
-    }
-    if (!blobSidecar.getBlockHash().equals(blockHash)) {
-      throw new BadBlockException("BlobSidecar with wrong block hash");
-    }
-    if (blobSidecar.getSidecar().getBlobsCount()
-        != blobSidecar.getSidecar().getCommitmentsCount()) {
-      throw new BadBlockException("BlobSidecar has wrong commitment count");
-    }
-    if (blobSidecar.getSidecar().getBlobsCount()
-        != blobSidecar.getSidecar().getProofsCount()) {
-      throw new BadBlockException("BlobSidecar has wrong proof count");
     }
   }
 
