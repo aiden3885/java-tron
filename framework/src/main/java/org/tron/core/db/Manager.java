@@ -1931,7 +1931,7 @@ public class Manager {
     }
 
     if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
-      BlobSidecarUtil.validateBlockBlobTx(block);
+      BlobSidecarUtil.validateBlockBlobTx(block, getDynamicPropertiesStore().disableJavaLangMath());
     }
 
     TransactionRetCapsule transactionRetCapsule =

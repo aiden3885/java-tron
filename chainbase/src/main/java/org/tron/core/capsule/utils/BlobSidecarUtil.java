@@ -38,7 +38,7 @@ import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
 
 public class BlobSidecarUtil {
 
-  public static void validateSidecars(List<ByteString> blobHashes, BlobTxSidecar sidecar)
+  private static void validateSidecars(List<ByteString> blobHashes, BlobTxSidecar sidecar)
       throws ContractValidateException {
     if (sidecar.getBlobsCount() != blobHashes.size()) {
       throw new ContractValidateException(
@@ -75,7 +75,7 @@ public class BlobSidecarUtil {
     for (int i = 0; i < blobHashes.size(); i++) {
       try {
         if (!CKZG4844JNI.verifyBlobKzgProof(
-            blobHashes.get(i).toByteArray(),
+            sidecar.getBlobs(i).toByteArray(),
             sidecar.getCommitments(i).toByteArray(),
             sidecar.getProofs(i).toByteArray())) {
           throw new ContractValidateException(String.format("invalid blob %d", i));
@@ -116,7 +116,7 @@ public class BlobSidecarUtil {
     return blobContract.getBlobHashesList().size();
   }
 
-  public static void validateBlockBlobTx(BlockCapsule block)
+  public static void validateBlockBlobTx(BlockCapsule block, boolean disableJavaLangMath)
       throws BadBlockException, ContractValidateException {
     List<BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
     if (sidecarsList.isEmpty()) {
@@ -134,7 +134,7 @@ public class BlobSidecarUtil {
     int totalBlobCount = 0;
     for (BlobSidecar blobSidecar: sidecarsList) {
       validateBlockBlobSidecar(blobSidecar, block.getNum(), block.getBlockId().getByteString());
-      totalBlobCount = addExact(totalBlobCount, blobSidecar.getSidecar().getBlobsCount(), true);
+      totalBlobCount = addExact(totalBlobCount, blobSidecar.getSidecar().getBlobsCount(), disableJavaLangMath);
     }
 
     if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
