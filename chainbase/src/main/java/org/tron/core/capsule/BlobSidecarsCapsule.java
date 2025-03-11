@@ -15,11 +15,11 @@
 
 package org.tron.core.capsule;
 
-import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.common.overlay.message.Message;
+import org.tron.common.utils.ByteArray;
 import org.tron.core.exception.BadItemException;
 import org.tron.protos.Protocol.BlobSidecars;
 
@@ -54,8 +54,8 @@ public class BlobSidecarsCapsule implements ProtoCapsule<BlobSidecars> {
     }
   }
 
-  public static byte[] createDbKey(long blockNum, ByteString blockHash) {
-    return (blockNum + "-" + blockHash).getBytes();
+  public static byte[] createDbKey(long blockNum) {
+    return ByteArray.fromLong(blockNum);
   }
 
   @Override

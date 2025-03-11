@@ -69,8 +69,7 @@ public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
       try {
         BlockCapsule blockCapsule = new BlockCapsule(bytes);
         try {
-          byte[] sidecarDbKey = BlobSidecarsCapsule.createDbKey(
-              blockCapsule.getNum(), blockCapsule.getBlockId().getByteString());
+          byte[] sidecarDbKey = BlobSidecarsCapsule.createDbKey(blockCapsule.getNum());
           BlobSidecarsCapsule sidecarsCapsule = blobSidecarsStore.get(sidecarDbKey);
           blockCapsule.addAllBlobSidecars(sidecarsCapsule);
         } catch (BadItemException e) {

@@ -4531,9 +4531,8 @@ public class Wallet {
     BlobSidecarResponseMessage.Builder builder = BlobSidecarResponseMessage.newBuilder();
     try {
       indices.sort(Comparator.comparingInt(Integer::intValue));
-      BlockId blockId = chainBaseManager.getBlockIdByNum(blockNum);
       BlobSidecarsCapsule blobSidecars = chainBaseManager.getBlobSidecarsStore().get(
-          BlobSidecarsCapsule.createDbKey(blockId.getNum(), blockId.getByteString()));
+          BlobSidecarsCapsule.createDbKey(blockNum));
 
       int idx = 0;
       int curIdx = 0;

@@ -1259,14 +1259,10 @@ public class Manager {
     // save blobs
     long minBlocksForSidecars = Args.getInstance().getMinBlocksForSidecarsRequests();
     if (minBlocksForSidecars > 0) {
-      BlobSidecars blobSidecars =
-          BlobSidecars.newBuilder()
-              .addAllBlobSidecar(block.getInstance().getBlobSidecarList())
-              .build();
-      chainBaseManager
-          .getBlobSidecarsStore()
-          .put(
-              BlobSidecarsCapsule.createDbKey(block.getNum(), block.getBlockId().getByteString()),
+      BlobSidecars blobSidecars = BlobSidecars.newBuilder()
+          .addAllBlobSidecar(block.getInstance().getBlobSidecarList()).build();
+      chainBaseManager.getBlobSidecarsStore()
+          .put(BlobSidecarsCapsule.createDbKey(block.getNum()),
               new BlobSidecarsCapsule(blobSidecars));
 
       // delete blobs before
@@ -1276,14 +1272,8 @@ public class Manager {
               minBlocksForSidecars,
               getDynamicPropertiesStore().disableJavaLangMath());
       if (blockNumToDeleteBlob > 0) {
-        try {
-          BlockId blockId = chainBaseManager.getBlockIdByNum(blockNumToDeleteBlob);
-          chainBaseManager
-              .getBlobSidecarsStore()
-              .delete(BlobSidecarsCapsule.createDbKey(blockId.getNum(), blockId.getByteString()));
-        } catch (ItemNotFoundException e) {
-          logger.warn("Delete blobs failed, block {} not found", blockNumToDeleteBlob);
-        }
+        chainBaseManager.getBlobSidecarsStore()
+            .delete(BlobSidecarsCapsule.createDbKey(blockNumToDeleteBlob));
       }
     }
   }
@@ -1835,9 +1825,7 @@ public class Manager {
 
     blockCapsule.addBlobs(blobTxToBePacked);
     if (!pushBackTransactions.isEmpty()) {
-      pushBackTransactions.addAll(pendingTransactions);
-      pendingTransactions.clear();
-      pendingTransactions.addAll(pushBackTransactions);
+      rePushTransactions.addAll(pushBackTransactions);
     }
 
     BlockCapsule capsule = new BlockCapsule(blockCapsule.getInstance());
