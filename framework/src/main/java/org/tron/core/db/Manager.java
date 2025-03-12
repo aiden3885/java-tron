@@ -886,7 +886,7 @@ public class Manager {
       return true;
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTx() == 1) {
       int blobCount = BlobSidecarUtil.preValidateBlobTx(
           trx, 0, getDynamicPropertiesStore().disableJavaLangMath());
       if (blobCount > MAX_BLOBS_PER_BLOCK) {
@@ -1929,7 +1929,7 @@ public class Manager {
       }
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTx() == 1) {
       BlobSidecarUtil.validateBlockBlobTx(block, getDynamicPropertiesStore().disableJavaLangMath());
     }
 

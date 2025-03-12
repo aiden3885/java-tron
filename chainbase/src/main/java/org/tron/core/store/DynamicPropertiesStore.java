@@ -230,9 +230,11 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
 
   private static final byte[] ALLOW_TVM_CANCUN = "ALLOW_TVM_CANCUN".getBytes();
 
-  private static final byte[] ALLOW_BLOB_TX = "ALLOW_BLOB_TX".getBytes();
+  private static final byte[] ALLOW_TVM_BLOB = "ALLOW_TVM_BLOB".getBytes();
 
   private static final byte[] BLOB_FEE = "BLOB_FEE".getBytes();
+
+  private static final byte[] ALLOW_BLOB_TX = "ALLOW_BLOB_TX".getBytes();
 
   @Autowired
   private DynamicPropertiesStore(@Value("properties") String dbName) {
@@ -2937,16 +2939,15 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
         .orElse(CommonParameter.getInstance().getAllowTvmCancun());
   }
 
-  public void saveAllowBlobTx(long allowBlobTx) {
-    this.put(ALLOW_BLOB_TX,
-        new BytesCapsule(ByteArray.fromLong(allowBlobTx)));
+  public void saveAllowTvmBlob(long allowTvmBlob) {
+    this.put(ALLOW_TVM_BLOB, new BytesCapsule(ByteArray.fromLong(allowTvmBlob)));
   }
 
-  public long getAllowBlobTx() {
-    return Optional.ofNullable(getUnchecked(ALLOW_BLOB_TX))
+  public long getAllowTvmBlob() {
+    return Optional.ofNullable(getUnchecked(ALLOW_TVM_BLOB))
         .map(BytesCapsule::getData)
         .map(ByteArray::toLong)
-        .orElse(CommonParameter.getInstance().getAllowBlobTx());
+        .orElse(CommonParameter.getInstance().getAllowTvmBlob());
   }
 
   public void saveBlobFee(long value) {
@@ -2960,11 +2961,19 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
         .orElse(CommonParameter.getInstance().getBlobFee());
   }
 
-    public boolean allowBlobTx() {
-      return getAllowBlobTx() == 1L;
-    }
+  public void saveAllowBlobTx(long allowBlobTx) {
+    this.put(ALLOW_BLOB_TX,
+        new BytesCapsule(ByteArray.fromLong(allowBlobTx)));
+  }
 
-    private static class DynamicResourceProperties {
+  public long getAllowBlobTx() {
+    return Optional.ofNullable(getUnchecked(ALLOW_BLOB_TX))
+        .map(BytesCapsule::getData)
+        .map(ByteArray::toLong)
+        .orElse(CommonParameter.getInstance().getAllowBlobTx());
+  }
+
+  private static class DynamicResourceProperties {
 
     private static final byte[] ONE_DAY_NET_LIMIT = "ONE_DAY_NET_LIMIT".getBytes();
     //public free bandwidth

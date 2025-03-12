@@ -245,8 +245,9 @@ public class Args extends CommonParameter {
     PARAMETER.allowStrictMath = 0;
     PARAMETER.consensusLogicOptimization = 0;
     PARAMETER.allowTvmCancun = 0;
-    PARAMETER.allowBlobTx = 0;
+    PARAMETER.allowTvmBlob = 0;
     PARAMETER.blobFee = 0;
+    PARAMETER.allowBlobTx = 0;
     PARAMETER.minBlocksForSidecarsRequests = MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
     PARAMETER.blobTransInPendingMaxCounts = 10;
   }
@@ -455,7 +456,8 @@ public class Args extends CommonParameter {
 
     if (PARAMETER.isWitness()
         && CollectionUtils.isEmpty(localWitnesses.getPrivateKeys())) {
-      logger.warn("This is a witness node, but localWitnesses is null");
+      throw new TronError("This is a witness node, but localWitnesses is null",
+          TronError.ErrCode.WITNESS_INIT);
     }
 
     if (config.hasPath(Constant.VM_SUPPORT_CONSTANT)) {
@@ -1146,7 +1148,7 @@ public class Args extends CommonParameter {
         PARAMETER.shutdownBlockTime = new CronExpression(config.getString(
             Constant.NODE_SHUTDOWN_BLOCK_TIME));
       } catch (ParseException e) {
-        logger.error(e.getMessage(), e);
+        throw new TronError(e, TronError.ErrCode.AUTO_STOP_PARAMS);
       }
     }
 
@@ -1279,9 +1281,9 @@ public class Args extends CommonParameter {
         config.hasPath(Constant.COMMITTEE_ALLOW_TVM_CANCUN) ? config
             .getInt(Constant.COMMITTEE_ALLOW_TVM_CANCUN) : 0;
 
-    PARAMETER.allowBlobTx =
-            config.hasPath(Constant.COMMITTEE_ALLOW_BLOB_TX) ? config
-                    .getInt(Constant.COMMITTEE_ALLOW_BLOB_TX) : 0;
+    PARAMETER.allowTvmBlob =
+        config.hasPath(Constant.COMMITTEE_ALLOW_TVM_BLOB) ? config
+            .getInt(Constant.COMMITTEE_ALLOW_TVM_BLOB) : 0;
 
     if (config.hasPath(Constant.COMMITTEE_BLOB_FEE)) {
       PARAMETER.blobFee = config.getLong(Constant.COMMITTEE_BLOB_FEE);
@@ -1292,6 +1294,10 @@ public class Args extends CommonParameter {
         PARAMETER.blobFee = 0;
       }
     }
+
+    PARAMETER.allowBlobTx =
+        config.hasPath(Constant.COMMITTEE_ALLOW_BLOB_TX) ? config
+            .getInt(Constant.COMMITTEE_ALLOW_BLOB_TX) : 0;
 
     PARAMETER.minBlocksForSidecarsRequests =
         config.hasPath(Constant.NODE_MIN_BLOCKS_FOR_SIDECARS_REQUESTS)

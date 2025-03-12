@@ -1388,13 +1388,18 @@ public class Wallet {
         .build());
 
     builder.addChainParameter(Protocol.ChainParameters.ChainParameter.newBuilder()
-        .setKey("getAllowBlobTx")
-        .setValue(dbManager.getDynamicPropertiesStore().getAllowBlobTx())
+        .setKey("getAllowTvmBlob")
+        .setValue(dbManager.getDynamicPropertiesStore().getAllowTvmBlob())
         .build());
 
     builder.addChainParameter(Protocol.ChainParameters.ChainParameter.newBuilder()
         .setKey("getBlobFee")
         .setValue(dbManager.getDynamicPropertiesStore().getBlobFee())
+        .build());
+
+    builder.addChainParameter(Protocol.ChainParameters.ChainParameter.newBuilder()
+        .setKey("getAllowBlobTx")
+        .setValue(dbManager.getDynamicPropertiesStore().getAllowBlobTx())
         .build());
 
     return builder.build();

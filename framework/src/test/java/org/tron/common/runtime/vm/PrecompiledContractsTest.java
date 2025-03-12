@@ -8,9 +8,6 @@ import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-
-import ethereum.ckzg4844.CKZG4844JNI;
-import ethereum.ckzg4844.KZG4844;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bouncycastle.util.Arrays;
@@ -43,8 +40,6 @@ import org.tron.core.vm.PrecompiledContracts.PrecompiledContract;
 import org.tron.core.vm.config.VMConfig;
 import org.tron.core.vm.repository.Repository;
 import org.tron.core.vm.repository.RepositoryImpl;
-import org.tron.core.zen.KZGPointEvaluationInitService;
-import org.tron.core.zen.ZksnarkInitService;
 import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.AccountType;
 import org.tron.protos.Protocol.Proposal.State;
@@ -1174,21 +1169,22 @@ public class PrecompiledContractsTest extends BaseTest {
   }
 
   @Test
-  public void ckzgPointEvaluationTest() {
-    VMConfig.initAllowBlobTx(1);
+  public void kzgPointEvaluationTest() {
+    VMConfig.initAllowTvmBlob(1);
 
     PrecompiledContract contract =
         createPrecompiledContract(kzgPointEvaluationAddr, OWNER_ADDRESS);
     Repository tempRepository = RepositoryImpl.createRoot(StoreFactory.getInstance());
     contract.setRepository(tempRepository);
 
-    byte[] versionedHash = Hex.decode("015a4cab4911426699ed34483de6640cf55a568afc5c5edffdcbd8bcd4452f68");
+    byte[] versionedHash =
+        Hex.decode("015a4cab4911426699ed34483de6640cf55a568afc5c5edffdcbd8bcd4452f68");
     byte[] z = Hex.decode("0000000000000000000000000000000000000000000000000000000000000065");
     byte[] y = Hex.decode("60f557194475973322b33dc989896381844508234bfa6fbeefe5fa165ae15a0a");
-    byte[] commitment = Hex.decode("a70477b56251e8770969c83eaed665d3ab99b96b72270a4" +
-        "1009f2752b5c06a06bd089ad48952c12b1dbf83dccd9d373f");
-    byte[] proof = Hex.decode("879f9a41956deae578bc65e7133f164394b8677bc2e7b1356be61" +
-        "d47720ed2a3326bfddebc67cd37ee9e7537d7814afe");
+    byte[] commitment = Hex.decode("a70477b56251e8770969c83eaed665d3ab99b96b72270a4"
+        + "1009f2752b5c06a06bd089ad48952c12b1dbf83dccd9d373f");
+    byte[] proof = Hex.decode("879f9a41956deae578bc65e7133f164394b8677bc2e7b1356be61"
+        + "d47720ed2a3326bfddebc67cd37ee9e7537d7814afe");
 
     byte[] data = new byte[192];
     System.arraycopy(versionedHash, 0, data, 0, 32);
@@ -1216,10 +1212,10 @@ public class PrecompiledContractsTest extends BaseTest {
 
     res = contract.execute(data);
     byte[] expected = Hex.decode(
-      "0000000000000000000000000000000000000000000000000000000000001000" +
-          "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");
+      "0000000000000000000000000000000000000000000000000000000000001000"
+          + "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");
     Assert.assertTrue(res.getLeft());
     Assert.assertArrayEquals(expected, res.getRight());
-    VMConfig.initAllowBlobTx(0);
+    VMConfig.initAllowTvmBlob(0);
   }
 }

@@ -20,9 +20,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import ethereum.ckzg4844.CKZG4844JNI;
-import ethereum.ckzg4844.CKZGException;
-import ethereum.ckzg4844.KZG4844;
+import org.tron.common.crypto.ckzg4844.CKZG4844JNI;
+import org.tron.common.crypto.ckzg4844.CKZGException;
+import org.tron.common.crypto.ckzg4844.KZG4844;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.core.capsule.BlockCapsule;
 import org.tron.core.capsule.ContractCapsule;
