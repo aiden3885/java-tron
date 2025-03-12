@@ -248,6 +248,7 @@ public class Args extends CommonParameter {
     PARAMETER.allowBlobTx = 0;
     PARAMETER.blobFee = 0;
     PARAMETER.minBlocksForSidecarsRequests = MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
+    PARAMETER.blobTransInPendingMaxCounts = 10;
   }
 
   /**
@@ -1296,6 +1297,10 @@ public class Args extends CommonParameter {
         config.hasPath(Constant.NODE_MIN_BLOCKS_FOR_SIDECARS_REQUESTS)
             ? config.getInt(Constant.NODE_MIN_BLOCKS_FOR_SIDECARS_REQUESTS)
             : MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
+
+    PARAMETER.blobTransInPendingMaxCounts =
+        config.hasPath(Constant.NODE_BLOB_TRANS_IN_PENDING_MAX_COUNTS) ? config
+            .getInt(Constant.NODE_BLOB_TRANS_IN_PENDING_MAX_COUNTS) : 10;
 
     logConfig();
   }

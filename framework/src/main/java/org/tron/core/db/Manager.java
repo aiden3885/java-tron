@@ -192,6 +192,8 @@ public class Manager {
   private static final int NO_BLOCK_WAITING_LOCK = 0;
   private final int shieldedTransInPendingMaxCounts =
       Args.getInstance().getShieldedTransInPendingMaxCounts();
+  private final int blobTransInPendingMaxCounts =
+      Args.getInstance().getBlobTransInPendingMaxCounts();
   @Getter
   @Setter
   public boolean eventPluginLoaded = false;
@@ -247,6 +249,8 @@ public class Manager {
   private BlockingQueue<TransactionCapsule> pendingTransactions;
   @Getter
   private AtomicInteger shieldedTransInPendingCounts = new AtomicInteger(0);
+  @Getter
+  private AtomicInteger blobTransInPendingCounts = new AtomicInteger(0);
   // transactions popped
   private List<TransactionCapsule> poppedTransactions =
       Collections.synchronizedList(Lists.newArrayList());
@@ -920,6 +924,10 @@ public class Manager {
                   && shieldedTransInPendingCounts.get() >= shieldedTransInPendingMaxCounts) {
             return false;
           }
+          if (trx.isBlobTransaction()
+              && blobTransInPendingCounts.get() >= blobTransInPendingMaxCounts) {
+            return false;
+          }
           if (!session.valid()) {
             session.setValue(revokingStore.buildSession());
           }
@@ -934,6 +942,9 @@ public class Manager {
           }
           if (isShieldedTransaction(trx.getInstance())) {
             shieldedTransInPendingCounts.incrementAndGet();
+          }
+          if (trx.isBlobTransaction()) {
+            blobTransInPendingCounts.incrementAndGet();
           }
         }
       }

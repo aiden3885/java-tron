@@ -413,6 +413,9 @@ public class CommonParameter {
   public int shieldedTransInPendingMaxCounts;
   @Getter
   @Setter
+  public int blobTransInPendingMaxCounts;
+  @Getter
+  @Setter
   public long changedDelegation;
   @Getter
   @Setter

@@ -17,6 +17,7 @@ package org.tron.core.capsule;
 
 import static org.tron.common.utils.StringUtil.encode58Check;
 import static org.tron.common.utils.WalletUtil.checkPermissionOperations;
+import static org.tron.core.Constant.BLOB_TRANSACTION_EXTRA_PACK_SIZE;
 import static org.tron.core.Constant.MAX_CONTRACT_RESULT_SIZE;
 import static org.tron.core.exception.P2pException.TypeEnum.PROTOBUF_ERROR;
 
@@ -732,7 +733,8 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
    */
   public long computeTrxSizeForBlockMessage() {
     if (isBlobTransaction()) {
-      return CodedOutputStream.computeMessageSize(1, getTransactionWithoutBlob());
+      return CodedOutputStream.computeMessageSize(1, getTransactionWithoutBlob())
+          + BLOB_TRANSACTION_EXTRA_PACK_SIZE;
     }
     return CodedOutputStream.computeMessageSize(1, this.transaction);
   }
