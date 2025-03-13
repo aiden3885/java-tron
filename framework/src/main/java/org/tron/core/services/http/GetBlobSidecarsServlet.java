@@ -1,5 +1,7 @@
 package org.tron.core.services.http;
 
+import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,8 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tron.api.GrpcAPI.BlobSidecarResponseMessage;
 import org.tron.core.Wallet;
-
-import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
 
 @Component
 @Slf4j(topic = "API")

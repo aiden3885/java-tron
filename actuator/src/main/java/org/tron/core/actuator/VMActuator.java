@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -547,7 +547,7 @@ public class VMActuator implements Actuator2 {
       }
     }
 
-    if (!VMConfig.allowBlobTx() || program != null) {
+    if (!VMConfig.allowBlobTransaction() || program != null) {
       program.getResult().setContractAddress(contractAddress);
     }
     //transfer from callerAddress to targetAddress according to callValue
@@ -565,7 +565,7 @@ public class VMActuator implements Actuator2 {
   private void blob() throws ContractValidateException {
     call();
 
-    if (!VMConfig.allowBlobTx()) {
+    if (!VMConfig.allowBlobTransaction()) {
       logger.info("Blob transaction is not allowed");
       throw new ContractValidateException("Blob transaction is not allowed");
     }

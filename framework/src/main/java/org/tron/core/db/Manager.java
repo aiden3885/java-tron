@@ -1,10 +1,10 @@
 package org.tron.core.db;
 
 import static org.tron.common.math.Maths.floorDiv;
-import static org.tron.common.math.Maths.subtractExact;
 import static org.tron.common.math.Maths.max;
 import static org.tron.common.math.Maths.min;
 import static org.tron.common.math.Maths.multiplyExact;
+import static org.tron.common.math.Maths.subtractExact;
 import static org.tron.common.utils.Commons.adjustBalance;
 import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
 import static org.tron.core.Constant.TRANSACTION_MAX_BYTE_SIZE;
@@ -171,11 +171,11 @@ import org.tron.core.store.WitnessScheduleStore;
 import org.tron.core.store.WitnessStore;
 import org.tron.core.utils.TransactionRegister;
 import org.tron.protos.Protocol.AccountType;
+import org.tron.protos.Protocol.BlobSidecars;
 import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.TransactionInfo;
-import org.tron.protos.Protocol.BlobSidecars;
 import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
@@ -886,7 +886,7 @@ public class Manager {
       return true;
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTx() == 1) {
+    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTransaction() == 1) {
       int blobCount = BlobSidecarUtil.preValidateBlobTx(
           trx, 0, getDynamicPropertiesStore().disableJavaLangMath());
       if (blobCount > MAX_BLOBS_PER_BLOCK) {
@@ -1753,11 +1753,11 @@ public class Manager {
 
       int totalBlobCount;
       try {
-          totalBlobCount =
-              BlobSidecarUtil.preValidateBlobTx(trx, packedBlobCount.get(),
-                  chainBaseManager.getDynamicPropertiesStore().disableJavaLangMath());
+        totalBlobCount =
+            BlobSidecarUtil.preValidateBlobTx(trx, packedBlobCount.get(),
+                chainBaseManager.getDynamicPropertiesStore().disableJavaLangMath());
       } catch (ContractValidateException e) {
-          continue;
+        continue;
       }
       if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
         // push back to tx pool
@@ -1929,7 +1929,7 @@ public class Manager {
       }
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTx() == 1) {
+    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTransaction() == 1) {
       BlobSidecarUtil.validateBlockBlobTx(block, getDynamicPropertiesStore().disableJavaLangMath());
     }
 

@@ -726,7 +726,7 @@ public class CommonParameter {
 
   @Getter
   @Setter
-  public long allowBlobTx;
+  public long allowBlobTransaction;
 
   @Getter
   @Setter
