@@ -850,18 +850,18 @@ public class ProposalUtil {
         }
         break;
       }
-      case ALLOW_BLOB_TX: {
+      case ALLOW_BLOB_TRANSACTION: {
         if (!forkController.pass(ForkBlockVersionEnum.VERSION_4_8_0)) {
           throw new ContractValidateException(
-              "Bad chain parameter id [ALLOW_BLOB_TX]");
+              "Bad chain parameter id [ALLOW_BLOB_TRANSACTION]");
         }
-        if (dynamicPropertiesStore.getAllowBlobTx() == 1) {
+        if (dynamicPropertiesStore.getAllowBlobTransaction() == 1) {
           throw new ContractValidateException(
-              "[ALLOW_BLOB_TX] has been valid, no need to propose again");
+              "[ALLOW_BLOB_TRANSACTION] has been valid, no need to propose again");
         }
         if (value != 1) {
           throw new ContractValidateException(
-              "This value[ALLOW_BLOB_TX] is only allowed to be 1");
+              "This value[ALLOW_BLOB_TRANSACTION] is only allowed to be 1");
         }
         break;
       }
@@ -949,7 +949,7 @@ public class ProposalUtil {
     CONSENSUS_LOGIC_OPTIMIZATION(88), // 0, 1
     ALLOW_TVM_BLOB(89), // 0, 1
     BLOB_FEE(90), // 0, [0, 1000_000_000]
-    ALLOW_BLOB_TX(91); // 0, 1
+    ALLOW_BLOB_TRANSACTION(91); // 0, 1
 
     private long code;
 

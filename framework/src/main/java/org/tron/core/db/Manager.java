@@ -888,7 +888,7 @@ public class Manager {
       return true;
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTx() == 1) {
+    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTransaction() == 1) {
       int blobCount = BlobSidecarUtil.preValidateBlobTx(
           trx, 0, getDynamicPropertiesStore().disableJavaLangMath());
       if (blobCount > MAX_BLOBS_PER_BLOCK) {
@@ -1283,7 +1283,6 @@ public class Manager {
     long before = ByteArray.toLong(bytesCapsule.getData());
     long head = getDynamicPropertiesStore().getLatestBlockHeaderNumber();
     while (--before >= current) {
-      logger.info("### {}", head - before);
       chainBaseManager.getBlobSidecarsStore()
           .delete(BlobSidecarsCapsule.createDbKey(head - before));
     }
@@ -1951,7 +1950,7 @@ public class Manager {
       }
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTx() == 1) {
+    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTransaction() == 1) {
       BlobSidecarUtil.validateBlockBlobTx(block, getDynamicPropertiesStore().disableJavaLangMath());
     }
 

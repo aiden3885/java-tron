@@ -247,7 +247,7 @@ public class Args extends CommonParameter {
     PARAMETER.allowTvmCancun = 0;
     PARAMETER.allowTvmBlob = 0;
     PARAMETER.blobFee = 0;
-    PARAMETER.allowBlobTx = 0;
+    PARAMETER.allowBlobTransaction = 0;
     PARAMETER.minBlocksForSidecarsRequests = MIN_BLOCKS_FOR_SIDECARS_REQUESTS;
     PARAMETER.blobTransInPendingMaxCounts = 10;
   }
@@ -1295,9 +1295,9 @@ public class Args extends CommonParameter {
       }
     }
 
-    PARAMETER.allowBlobTx =
-        config.hasPath(Constant.COMMITTEE_ALLOW_BLOB_TX) ? config
-            .getInt(Constant.COMMITTEE_ALLOW_BLOB_TX) : 0;
+    PARAMETER.allowBlobTransaction =
+        config.hasPath(Constant.COMMITTEE_ALLOW_BLOB_TRANSACTION) ? config
+            .getInt(Constant.COMMITTEE_ALLOW_BLOB_TRANSACTION) : 0;
 
     PARAMETER.minBlocksForSidecarsRequests =
         config.hasPath(Constant.NODE_MIN_BLOCKS_FOR_SIDECARS_REQUESTS)

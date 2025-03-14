@@ -75,6 +75,8 @@ import org.tron.api.GrpcAPI.AccountNetMessage;
 import org.tron.api.GrpcAPI.AccountResourceMessage;
 import org.tron.api.GrpcAPI.Address;
 import org.tron.api.GrpcAPI.AssetIssueList;
+import org.tron.api.GrpcAPI.BlobSidecarReply;
+import org.tron.api.GrpcAPI.BlobSidecarResponseMessage;
 import org.tron.api.GrpcAPI.BlockList;
 import org.tron.api.GrpcAPI.BytesMessage;
 import org.tron.api.GrpcAPI.DecryptNotes;
@@ -93,8 +95,6 @@ import org.tron.api.GrpcAPI.NoteParameters;
 import org.tron.api.GrpcAPI.NumberMessage;
 import org.tron.api.GrpcAPI.PaymentAddressMessage;
 import org.tron.api.GrpcAPI.PricesResponseMessage;
-import org.tron.api.GrpcAPI.BlobSidecarReply;
-import org.tron.api.GrpcAPI.BlobSidecarResponseMessage;
 import org.tron.api.GrpcAPI.PrivateParameters;
 import org.tron.api.GrpcAPI.PrivateParametersWithoutAsk;
 import org.tron.api.GrpcAPI.PrivateShieldedTRC20Parameters;
@@ -224,6 +224,7 @@ import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Account;
 import org.tron.protos.Protocol.Account.FreezeV2;
 import org.tron.protos.Protocol.Account.UnFreezeV2;
+import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.Protocol.Block;
 import org.tron.protos.Protocol.DelegatedResourceAccountIndex;
 import org.tron.protos.Protocol.Exchange;
@@ -238,7 +239,6 @@ import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.Transaction.Contract.ContractType;
 import org.tron.protos.Protocol.Transaction.Result.code;
 import org.tron.protos.Protocol.TransactionInfo;
-import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.contract.AssetIssueContractOuterClass.AssetIssueContract;
 import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.BalanceContract.BlockBalanceTrace;
@@ -1398,8 +1398,8 @@ public class Wallet {
         .build());
 
     builder.addChainParameter(Protocol.ChainParameters.ChainParameter.newBuilder()
-        .setKey("getAllowBlobTx")
-        .setValue(dbManager.getDynamicPropertiesStore().getAllowBlobTx())
+        .setKey("getAllowBlobTransaction")
+        .setValue(dbManager.getDynamicPropertiesStore().getAllowBlobTransaction())
         .build());
 
     return builder.build();

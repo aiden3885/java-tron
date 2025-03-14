@@ -388,8 +388,8 @@ public class ProposalService extends ProposalUtil {
           manager.getDynamicPropertiesStore().saveBlobFee(entry.getValue());
           break;
         }
-        case ALLOW_BLOB_TX: {
-          manager.getDynamicPropertiesStore().saveAllowBlobTx(entry.getValue());
+        case ALLOW_BLOB_TRANSACTION: {
+          manager.getDynamicPropertiesStore().saveAllowBlobTransaction(entry.getValue());
           break;
         }
         default:

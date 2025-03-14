@@ -1266,12 +1266,12 @@ public class ManagerTest extends BlockGenerate {
 
     dbManager.getDynamicPropertiesStore().saveLatestBlockHeaderNumber(10);
 
-    dbManager.getDynamicPropertiesStore().saveAllowBlobTx(0);
+    dbManager.getDynamicPropertiesStore().saveAllowBlobTransaction(0);
     Method method = dbManager.getClass().getDeclaredMethod("initBlobSidecarsStore");
     method.setAccessible(true);
     method.invoke(dbManager);
 
-    dbManager.getDynamicPropertiesStore().saveAllowBlobTx(1);
+    dbManager.getDynamicPropertiesStore().saveAllowBlobTransaction(1);
     Args.getInstance().setMinBlocksForSidecarsRequests(10);
     method.invoke(dbManager);
 

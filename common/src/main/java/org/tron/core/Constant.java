@@ -409,7 +409,7 @@ public class Constant {
 
   public static final String COMMITTEE_BLOB_FEE = "committee.blobFee";
 
-  public static final String COMMITTEE_ALLOW_BLOB_TX = "committee.allowBlobTx";
+  public static final String COMMITTEE_ALLOW_BLOB_TRANSACTION = "committee.allowBlobTransaction";
 
   public static final String NODE_MIN_BLOCKS_FOR_SIDECARS_REQUESTS = "node.minBlocksForSidecarsRequests";
 
