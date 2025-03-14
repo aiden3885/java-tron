@@ -318,5 +318,15 @@ public class ParameterTest {
     assertEquals(1000, parameter.getMaxCreateAccountTxSize());
     parameter.setBlobTransInPendingMaxCounts(1);
     assertEquals(1, parameter.getBlobTransInPendingMaxCounts());
+    parameter.setAllowTvmCancun(1);
+    assertEquals(1, parameter.getAllowTvmCancun());
+    parameter.setAllowTvmBlob(1);
+    assertEquals(1, parameter.getAllowTvmBlob());
+    parameter.setBlobFee(100);
+    assertEquals(100, parameter.getBlobFee());
+    parameter.setAllowBlobTransaction(1);
+    assertEquals(1, parameter.getAllowBlobTransaction());
+    parameter.setMinBlocksForSidecarsRequests(28800);
+    assertEquals(28800, parameter.getMinBlocksForSidecarsRequests());
   }
 }

@@ -21,14 +21,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.tron.common.error.TronDBException;
 import org.tron.common.utils.Sha256Hash;
 import org.tron.core.capsule.BlobSidecarsCapsule;
 import org.tron.core.capsule.BlockCapsule;
 import org.tron.core.capsule.BlockCapsule.BlockId;
+import org.tron.core.capsule.BytesCapsule;
 import org.tron.core.exception.BadItemException;
 import org.tron.core.exception.ItemNotFoundException;
 
@@ -54,6 +55,11 @@ public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
     revokingDB.put(key, item.getData());
   }
 
+  @Override
+  public BlockCapsule get(byte[] key) throws ItemNotFoundException, BadItemException {
+    return pack(revokingDB.get(key));
+  }
+
   public List<BlockCapsule> getLimitNumber(long startNumber, long limit) {
     BlockId startBlockId = new BlockId(Sha256Hash.ZERO_HASH, startNumber);
     return pack(revokingDB.getValuesNext(startBlockId.getBytes(), limit));
@@ -67,16 +73,7 @@ public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
     List<BlockCapsule> blocks = new ArrayList<>();
     for (byte[] bytes : values) {
       try {
-        BlockCapsule blockCapsule = new BlockCapsule(bytes);
-        try {
-          byte[] sidecarDbKey = BlobSidecarsCapsule.createDbKey(blockCapsule.getNum());
-          BlobSidecarsCapsule sidecarsCapsule = blobSidecarsStore.get(sidecarDbKey);
-          blockCapsule.addAllBlobSidecars(sidecarsCapsule);
-        } catch (BadItemException e) {
-          logger.info("Sidecar item not found: {}", e.getMessage());
-        } catch (ItemNotFoundException e) {
-          logger.error("Find bad sidecar item: {}", e.getMessage());
-        }
+        BlockCapsule blockCapsule = pack(bytes);
         blocks.add(blockCapsule);
       } catch (BadItemException e) {
         logger.error("Find bad item: {}", e.getMessage());
@@ -85,5 +82,19 @@ public class BlockStore extends TronStoreWithRevoking<BlockCapsule> {
     }
     blocks.sort(Comparator.comparing(BlockCapsule::getNum));
     return blocks;
+  }
+
+  private BlockCapsule pack(byte[] value) throws BadItemException {
+    BlockCapsule blockCapsule = new BlockCapsule(value);
+    try {
+      byte[] sidecarDbKey = BlobSidecarsCapsule.createDbKey(blockCapsule.getNum());
+      BlobSidecarsCapsule sidecarsCapsule = blobSidecarsStore.get(sidecarDbKey);
+      blockCapsule.addBlobSidecars(sidecarsCapsule);
+    } catch (BadItemException e) {
+      logger.warn("Find bad sidecar item: {}", e.getMessage());
+    } catch (ItemNotFoundException e) {
+      logger.info("Sidecar item not found: {}", e.getMessage());
+    }
+    return blockCapsule;
   }
 }

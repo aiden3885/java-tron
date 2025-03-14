@@ -1,7 +1,9 @@
 package org.tron.common.runtime.vm;
 
 import static org.junit.Assert.assertEquals;
+import static org.tron.protos.Protocol.Transaction.Contract.ContractType.BlobContract;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -1015,35 +1017,32 @@ public class OperationsTest extends BaseTest {
     VMConfig.initAllowTvmBlob(1);
 
     invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
+    Protocol.Transaction trx = TvmTestUtils.createDefaultTransaction();
     InternalTransaction interTrx =
         new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
 
+    byte[] versionedHash1 =
+        Hex.decode("01aff171b2202e0e5fb52674e385c0b7950619d6c824d86d83cd746bcb83982a");
+    byte[] versionedHash2 =
+        Hex.decode("01ed7b2278604fa9a095df2eccbc850fa3baec5cd30d7505bb1444ce93c4d422");
+
     // BLOBAHASH = 0x49
-    byte[] op = new byte[] {0x60, 0x20, 0x49};
+    byte[] op = new byte[] {0x60, 0x02, 0x49};
     program = new Program(op, op, invoke, interTrx);
     testOperations(program);
     Assert.assertEquals(6, program.getResult().getEnergyUsed());
     Assert.assertEquals(DataWord.ZERO(), program.getStack().pop());
 
-    VMConfig.initAllowTvmBlob(0);
-  }
-
-  @Test
-  public void testBlobBaseFee() throws ContractValidateException {
-    VMConfig.initAllowTvmBlob(1);
-
-    invoke = new ProgramInvokeMockImpl();
-    Protocol.Transaction trx = Protocol.Transaction.getDefaultInstance();
-    InternalTransaction interTrx =
-        new InternalTransaction(trx, InternalTransaction.TrxType.TRX_UNKNOWN_TYPE);
-
-    // BLOBBASEFEE = 0x4a
-    byte[] op = new byte[] {0x60, 0x20, 0x4a};
     program = new Program(op, op, invoke, interTrx);
+    program.setVersionedHashes(Arrays.asList(versionedHash1, versionedHash2));
     testOperations(program);
-    Assert.assertEquals(5, program.getResult().getEnergyUsed());
     Assert.assertEquals(DataWord.ZERO(), program.getStack().pop());
+
+    op = new byte[] {0x60, 0x01, 0x49};
+    program = new Program(op, op, invoke, interTrx);
+    program.setVersionedHashes(Arrays.asList(versionedHash1, versionedHash2));
+    testOperations(program);
+    Assert.assertArrayEquals(versionedHash2, program.getStack().pop().getData());
 
     VMConfig.initAllowTvmBlob(0);
   }

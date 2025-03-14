@@ -152,7 +152,7 @@ public class BlockCapsule implements ProtoCapsule<Block> {
     getTransactions().addAll(pendingTrxs);
   }
 
-  public void addAllBlobSidecars(BlobSidecarsCapsule blobSidecarsCapsule) {
+  public void addBlobSidecars(BlobSidecarsCapsule blobSidecarsCapsule) {
     this.block = this.block.toBuilder()
         .addAllBlobSidecar(blobSidecarsCapsule.getInstance().getBlobSidecarList()).build();
   }

@@ -2966,15 +2966,15 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
         new BytesCapsule(ByteArray.fromLong(allowBlobTransaction)));
   }
 
-  public boolean allowBlobTx() {
-    return getAllowBlobTransaction() == 1;
-  }
-
   public long getAllowBlobTransaction() {
     return Optional.ofNullable(getUnchecked(ALLOW_BLOB_TRANSACTION))
         .map(BytesCapsule::getData)
         .map(ByteArray::toLong)
         .orElse(CommonParameter.getInstance().getAllowBlobTransaction());
+  }
+
+  public boolean allowBlobTx() {
+    return getAllowBlobTransaction() == 1;
   }
 
   private static class DynamicResourceProperties {

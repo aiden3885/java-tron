@@ -439,6 +439,10 @@ public class ProposalUtilTest extends BaseTest {
 
     testAllowTvmBlobProposal();
 
+    testBlobFeeProposal();
+
+    testAllowBlobTransactionProposal();
+
     forkUtils.getManager().getDynamicPropertiesStore()
         .statsByVersion(ForkBlockVersionEnum.ENERGY_LIMIT.getValue(), stats);
     forkUtils.reset();
@@ -654,6 +658,105 @@ public class ProposalUtilTest extends BaseTest {
     } catch (ContractValidateException e) {
       Assert.assertEquals(
           "[ALLOW_TVM_BLOB] has been valid, no need to propose again",
+          e.getMessage());
+    }
+
+  }
+
+  private void testBlobFeeProposal() {
+    byte[] stats = new byte[27];
+    forkUtils.getManager().getDynamicPropertiesStore()
+        .statsByVersion(ForkBlockVersionEnum.VERSION_4_8_0.getValue(), stats);
+    try {
+      ProposalUtil.validator(dynamicPropertiesStore, forkUtils,
+          ProposalType.BLOB_FEE.getCode(), 1);
+      Assert.fail();
+    } catch (ContractValidateException e) {
+      Assert.assertEquals(
+          "Bad chain parameter id [BLOB_FEE]",
+          e.getMessage());
+    }
+
+    long maintenanceTimeInterval = forkUtils.getManager().getDynamicPropertiesStore()
+        .getMaintenanceTimeInterval();
+
+    long hardForkTime =
+        ((ForkBlockVersionEnum.VERSION_4_8_0.getHardForkTime() - 1) / maintenanceTimeInterval + 1)
+            * maintenanceTimeInterval;
+    forkUtils.getManager().getDynamicPropertiesStore()
+        .saveLatestBlockHeaderTimestamp(hardForkTime + 1);
+
+    stats = new byte[27];
+    Arrays.fill(stats, (byte) 1);
+    forkUtils.getManager().getDynamicPropertiesStore()
+        .statsByVersion(ForkBlockVersionEnum.VERSION_4_8_0.getValue(), stats);
+
+    // Should fail because the proposal value is invalid
+    try {
+      ProposalUtil.validator(dynamicPropertiesStore, forkUtils,
+          ProposalType.BLOB_FEE.getCode(), 1_000_000_001);
+      Assert.fail();
+    } catch (ContractValidateException e) {
+      Assert.assertEquals(
+          "This value[BLOB_FEE] is only allowed to be in the range 0-1_000_000_000",
+          e.getMessage());
+    }
+
+    try {
+      ProposalUtil.validator(dynamicPropertiesStore, forkUtils,
+          ProposalType.BLOB_FEE.getCode(), 100);
+    } catch (ContractValidateException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void testAllowBlobTransactionProposal() {
+    byte[] stats = new byte[27];
+    forkUtils.getManager().getDynamicPropertiesStore()
+        .statsByVersion(ForkBlockVersionEnum.VERSION_4_8_0.getValue(), stats);
+    try {
+      ProposalUtil.validator(dynamicPropertiesStore, forkUtils,
+          ProposalType.ALLOW_BLOB_TRANSACTION.getCode(), 1);
+      Assert.fail();
+    } catch (ContractValidateException e) {
+      Assert.assertEquals(
+          "Bad chain parameter id [ALLOW_BLOB_TRANSACTION]",
+          e.getMessage());
+    }
+
+    long maintenanceTimeInterval = forkUtils.getManager().getDynamicPropertiesStore()
+        .getMaintenanceTimeInterval();
+
+    long hardForkTime =
+        ((ForkBlockVersionEnum.VERSION_4_8_0.getHardForkTime() - 1) / maintenanceTimeInterval + 1)
+            * maintenanceTimeInterval;
+    forkUtils.getManager().getDynamicPropertiesStore()
+        .saveLatestBlockHeaderTimestamp(hardForkTime + 1);
+
+    stats = new byte[27];
+    Arrays.fill(stats, (byte) 1);
+    forkUtils.getManager().getDynamicPropertiesStore()
+        .statsByVersion(ForkBlockVersionEnum.VERSION_4_8_0.getValue(), stats);
+
+    // Should fail because the proposal value is invalid
+    try {
+      ProposalUtil.validator(dynamicPropertiesStore, forkUtils,
+          ProposalType.ALLOW_BLOB_TRANSACTION.getCode(), 2);
+      Assert.fail();
+    } catch (ContractValidateException e) {
+      Assert.assertEquals(
+          "This value[ALLOW_BLOB_TRANSACTION] is only allowed to be 1",
+          e.getMessage());
+    }
+
+    dynamicPropertiesStore.saveAllowBlobTransaction(1);
+    try {
+      ProposalUtil.validator(dynamicPropertiesStore, forkUtils,
+          ProposalType.ALLOW_BLOB_TRANSACTION.getCode(), 1);
+      Assert.fail();
+    } catch (ContractValidateException e) {
+      Assert.assertEquals(
+          "[ALLOW_BLOB_TRANSACTION] has been valid, no need to propose again",
           e.getMessage());
     }
 

@@ -2,6 +2,8 @@ package org.tron.core.db;
 
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.tron.common.utils.Commons.adjustAssetBalanceV2;
@@ -14,7 +16,6 @@ import static org.tron.protos.Protocol.Transaction.Result.contractResult.SUCCESS
 import com.beust.jcommander.internal.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Longs;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
@@ -22,6 +23,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.util.encoders.Hex;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -55,7 +58,6 @@ import org.tron.core.capsule.AccountCapsule;
 import org.tron.core.capsule.AssetIssueCapsule;
 import org.tron.core.capsule.BlobSidecarsCapsule;
 import org.tron.core.capsule.BlockCapsule;
-import org.tron.core.capsule.BytesCapsule;
 import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.capsule.WitnessCapsule;
 import org.tron.core.config.DefaultConfig;
@@ -88,7 +90,6 @@ import org.tron.core.exception.VMIllegalException;
 import org.tron.core.exception.ValidateScheduleException;
 import org.tron.core.exception.ValidateSignatureException;
 import org.tron.core.exception.ZksnarkException;
-import org.tron.core.net.peer.PeerManager;
 import org.tron.core.store.AccountStore;
 import org.tron.core.store.CodeStore;
 import org.tron.core.store.DynamicPropertiesStore;
@@ -105,6 +106,7 @@ import org.tron.protos.contract.AccountContract;
 import org.tron.protos.contract.AssetIssueContractOuterClass;
 import org.tron.protos.contract.BalanceContract.TransferContract;
 import org.tron.protos.contract.ShieldContract;
+import org.tron.protos.contract.SmartContractOuterClass;
 
 
 @Slf4j
@@ -1297,5 +1299,276 @@ public class ManagerTest extends BlockGenerate {
         .get(BlobSidecarsCapsule.createDbKey(6));
 
     Assert.assertNotNull(capsule);
+  }
+
+  @Test
+  public void blobTransactionTest() throws Exception {
+
+    dbManager.getDynamicPropertiesStore().saveAllowBlobTransaction(1);
+    AccountCapsule account =
+        new AccountCapsule(Account.newBuilder()
+            .setAddress(ByteString.copyFrom(accountAddress.getBytes()))
+            .setBalance(1000000000)
+            .setAccountName(ByteString.copyFrom("test".getBytes()))
+            .build());
+    chainManager.getAccountStore().put(account.createDbKey(), account);
+
+    Manager managerMock = spy(dbManager);
+    doNothing().when(managerMock).validateCommon(any(TransactionCapsule.class));
+    doNothing().when(managerMock).validateDup(any(TransactionCapsule.class));
+    doNothing().when(managerMock).validateTapos(any(TransactionCapsule.class));
+    doNothing().when(managerMock)
+        .consumeMultiSignFee(any(TransactionCapsule.class), any(TransactionTrace.class));
+    doNothing().when(managerMock)
+        .consumeBlobFee(any(TransactionCapsule.class), any(TransactionTrace.class));
+
+    // blob trx without sidecars
+    Protocol.BlobTxSidecar blobTxSidecar = Protocol.BlobTxSidecar.newBuilder().build();
+    SmartContractOuterClass.BlobContract blobContract =
+        SmartContractOuterClass.BlobContract.newBuilder()
+            .setOwnerAddress(ByteString.copyFrom(accountAddress.getBytes()))
+            .setSidecar(blobTxSidecar)
+            .build();
+    TransactionCapsule blobTrx = new TransactionCapsule(blobContract, ContractType.BlobContract);
+    TransactionCapsule trxMock = spy(blobTrx);
+    try {
+      managerMock.pushTransaction(trxMock);
+    } catch (Exception e) {
+      Assert.assertTrue(e instanceof ContractValidateException);
+      Assert.assertEquals("missing sidecar in blob transaction", e.getMessage());
+    }
+
+    // blob trx without blob hashes
+    blobTxSidecar = Protocol.BlobTxSidecar.newBuilder()
+        .addBlobs(ByteString.copyFrom(new byte[1])).build();
+    blobContract = SmartContractOuterClass.BlobContract.newBuilder()
+        .setOwnerAddress(ByteString.copyFrom(accountAddress.getBytes()))
+        .setSidecar(blobTxSidecar)
+        .build();
+    blobTrx = new TransactionCapsule(blobContract, ContractType.BlobContract);
+    trxMock = spy(blobTrx);
+    try {
+      managerMock.pushTransaction(trxMock);
+    } catch (Exception e) {
+      Assert.assertTrue(e instanceof ContractValidateException);
+      Assert.assertEquals("blobless blob transaction", e.getMessage());
+    }
+
+    // blob trx with invalid number of blobs
+    blobTxSidecar = Protocol.BlobTxSidecar.newBuilder()
+        .addBlobs(ByteString.copyFrom(new byte[1]))
+        .addBlobs(ByteString.copyFrom(new byte[1]))
+        .build();
+    blobContract = SmartContractOuterClass.BlobContract.newBuilder()
+        .addBlobHashes(ByteString.copyFrom(new byte[1]))
+        .setOwnerAddress(ByteString.copyFrom(accountAddress.getBytes()))
+        .setSidecar(blobTxSidecar)
+        .build();
+    blobTrx = new TransactionCapsule(blobContract, ContractType.BlobContract);
+    trxMock = spy(blobTrx);
+    try {
+      managerMock.pushTransaction(trxMock);
+    } catch (Exception e) {
+      Assert.assertTrue(e instanceof ContractValidateException);
+      Assert.assertEquals(
+          "invalid number of 2 blobs compare to 1 blob hashes", e.getMessage());
+    }
+
+    // blob trx with invalid number of commitments
+    blobTxSidecar = Protocol.BlobTxSidecar.newBuilder()
+        .addBlobs(ByteString.copyFrom(new byte[1]))
+        .addCommitments(ByteString.copyFrom(new byte[1]))
+        .addCommitments(ByteString.copyFrom(new byte[1]))
+        .build();
+    blobContract = SmartContractOuterClass.BlobContract.newBuilder()
+        .addBlobHashes(ByteString.copyFrom(new byte[1]))
+        .setOwnerAddress(ByteString.copyFrom(accountAddress.getBytes()))
+        .setSidecar(blobTxSidecar)
+        .build();
+    blobTrx = new TransactionCapsule(blobContract, ContractType.BlobContract);
+    trxMock = spy(blobTrx);
+    try {
+      managerMock.pushTransaction(trxMock);
+    } catch (Exception e) {
+      Assert.assertTrue(e instanceof ContractValidateException);
+      Assert.assertEquals(
+          "invalid number of 2 commitments compare to 1 blob hashes", e.getMessage());
+    }
+
+    // blob trx with invalid number of proofs
+    blobTxSidecar = Protocol.BlobTxSidecar.newBuilder()
+        .addBlobs(ByteString.copyFrom(new byte[1]))
+        .addCommitments(ByteString.copyFrom(new byte[1]))
+        .addProofs(ByteString.copyFrom(new byte[1]))
+        .addProofs(ByteString.copyFrom(new byte[1]))
+        .build();
+    blobContract = SmartContractOuterClass.BlobContract.newBuilder()
+        .addBlobHashes(ByteString.copyFrom(new byte[1]))
+        .setOwnerAddress(ByteString.copyFrom(accountAddress.getBytes()))
+        .setSidecar(blobTxSidecar)
+        .build();
+    blobTrx = new TransactionCapsule(blobContract, ContractType.BlobContract);
+    trxMock = spy(blobTrx);
+    try {
+      managerMock.pushTransaction(trxMock);
+    } catch (Exception e) {
+      Assert.assertTrue(e instanceof ContractValidateException);
+      Assert.assertEquals(
+          "invalid number of 2 proofs compare to 1 blob hashes", e.getMessage());
+    }
+
+    // blob trx with invalid versionedHash
+    byte[] blob = new byte[131072];
+    blob[0] = 0x01;
+    byte[] versionedHash =
+        Hex.decode("025a4cab4911426699ed34483de6640cf55a568afc5c5edffdcbd8bcd4452f68");
+    byte[] commitment =
+        Hex.decode("a70477b56251e8770969c83eaed665d3ab99b96b72270a4100"
+            + "9f2752b5c06a06bd089ad48952c12b1dbf83dccd9d373f");
+    byte[] proof =
+        Hex.decode("b7f576f2442febaa035d3c6f34bbdad6acebcaec70236ff40b"
+            + "3373bd2ca00547d3ca7bb1d0ed3e728ca9dab610a4cfa4");
+    blobTrx = getBlobTrxCap(blob, versionedHash, commitment, proof);
+    trxMock = spy(blobTrx);
+    try {
+      managerMock.pushTransaction(trxMock);
+    } catch (Exception e) {
+      Assert.assertTrue(e instanceof ContractValidateException);
+    }
+
+    // blob trx with invalid sidecars
+    blob = new byte[131072];
+    blob[0] = 0x02;
+    versionedHash =
+        Hex.decode("015a4cab4911426699ed34483de6640cf55a568afc5c5edffdcbd8bcd4452f68");
+    blobTrx = getBlobTrxCap(blob, versionedHash, commitment, proof);
+    trxMock = spy(blobTrx);
+    try {
+      managerMock.pushTransaction(trxMock);
+    } catch (Exception e) {
+      Assert.assertTrue(e instanceof ContractValidateException);
+    }
+
+    // valid blob trx
+    blob = new byte[131072];
+    blob[0] = 0x01;
+    blobTrx = getBlobTrxCap(blob, versionedHash, commitment, proof);
+    trxMock = spy(blobTrx);
+    doReturn(true).when(trxMock)
+        .validatePubSignature(any(AccountStore.class), any(DynamicPropertiesStore.class));
+    doReturn(true).when(trxMock)
+        .validateSignature(any(AccountStore.class), any(DynamicPropertiesStore.class));
+    managerMock.pushTransaction(trxMock);
+    Assert.assertEquals(1, managerMock.getBlobTransInPendingCounts().get());
+    Assert.assertEquals(1, managerMock.getTxListFromPending().size());
+  }
+
+  private TransactionCapsule getBlobTrxCap(
+      byte[] blob, byte[] versionedHash, byte[] commitment, byte[] proof) {
+    Protocol.BlobTxSidecar blobTxSidecar =
+        Protocol.BlobTxSidecar.newBuilder()
+            .addBlobs(ByteString.copyFrom(blob))
+            .addCommitments(ByteString.copyFrom(commitment))
+            .addProofs(ByteString.copyFrom(proof))
+            .build();
+    SmartContractOuterClass.BlobContract blobContract =
+        SmartContractOuterClass.BlobContract.newBuilder()
+            .addBlobHashes(ByteString.copyFrom(versionedHash))
+            .setOwnerAddress(ByteString.copyFrom(accountAddress.getBytes()))
+            .setContractAddress(ByteString.copyFromUtf8("to"))
+            .setSidecar(blobTxSidecar)
+            .build();
+    return new TransactionCapsule(blobContract, ContractType.BlobContract);
+  }
+
+  @Test
+  public void applyBlockWithBlobTrxTest() throws Exception {
+    dbManager.getDynamicPropertiesStore().saveAllowBlobTransaction(1);
+    AccountCapsule account =
+        new AccountCapsule(Account.newBuilder()
+            .setAddress(ByteString.copyFrom(accountAddress.getBytes()))
+            .setBalance(1000000000)
+            .setAccountName(ByteString.copyFrom("test".getBytes()))
+            .build());
+    chainManager.getAccountStore().put(account.createDbKey(), account);
+
+    byte[] blob = new byte[131072];
+    blob[0] = 0x01;
+    byte[] versionedHash =
+        Hex.decode("015a4cab4911426699ed34483de6640cf55a568afc5c5edffdcbd8bcd4452f68");
+    byte[] commitment =
+        Hex.decode("a70477b56251e8770969c83eaed665d3ab99b96b72270a4100"
+            + "9f2752b5c06a06bd089ad48952c12b1dbf83dccd9d373f");
+    byte[] proof =
+        Hex.decode("b7f576f2442febaa035d3c6f34bbdad6acebcaec70236ff40b"
+            + "3373bd2ca00547d3ca7bb1d0ed3e728ca9dab610a4cfa4");
+    Protocol.BlobTxSidecar blobTxSidecar = Protocol.BlobTxSidecar.newBuilder().build();
+    SmartContractOuterClass.BlobContract blobContract =
+        SmartContractOuterClass.BlobContract.newBuilder()
+            .addBlobHashes(ByteString.copyFrom(versionedHash))
+            .setOwnerAddress(ByteString.copyFrom(accountAddress.getBytes()))
+            .setContractAddress(ByteString.copyFromUtf8("to"))
+            .setSidecar(blobTxSidecar)
+            .build();
+    TransactionCapsule blobTrx = new TransactionCapsule(blobContract, ContractType.BlobContract);
+
+    BlockCapsule blockCapsule =
+        new BlockCapsule(
+            1,
+            Sha256Hash.wrap(chainManager.getGenesisBlockId().getByteString()),
+            1,
+            ByteString.copyFrom(
+                ECKey.fromPrivate(ByteArray.fromHexString(Args.getLocalWitnesses().getPrivateKey()))
+                    .getAddress()));
+    blockCapsule.addBlobSidecars(
+        new BlobSidecarsCapsule(
+            Protocol.BlobSidecars.newBuilder()
+                .addBlobSidecar(
+                    Protocol.BlobSidecar.newBuilder()
+                        .setBlockNumber(blockCapsule.getNum())
+                        .setBlockHash(blockCapsule.getBlockId().getByteString())
+                        .setTxIndex(0)
+                        .setTxHash(blobTrx.getTransactionId().getByteString())
+                        .setSidecar(
+                            Protocol.BlobTxSidecar.newBuilder()
+                                .addBlobs(ByteString.copyFrom(blob))
+                                .addCommitments(ByteString.copyFrom(commitment))
+                                .addProofs(ByteString.copyFrom(proof))))
+                .build()));
+    blockCapsule.setMerkleRoot();
+    blockCapsule.sign(
+        ByteArray.fromHexString(Args.getLocalWitnesses().getPrivateKey()));
+
+    TransactionCapsule trxMock = spy(blobTrx);
+    doReturn(true).when(trxMock)
+        .validatePubSignature(any(AccountStore.class), any(DynamicPropertiesStore.class));
+    doReturn(true).when(trxMock)
+        .validateSignature(any(AccountStore.class), any(DynamicPropertiesStore.class));
+
+    blockCapsule.addTransaction(trxMock);
+    BlockCapsule blockMock = spy(blockCapsule);
+    Manager managerMock = spy(dbManager);
+    doNothing().when(managerMock).validateCommon(any(TransactionCapsule.class));
+    doNothing().when(managerMock).validateDup(any(TransactionCapsule.class));
+    doNothing().when(managerMock).validateTapos(any(TransactionCapsule.class));
+    doNothing().when(managerMock)
+        .consumeBandwidth(any(TransactionCapsule.class), any(TransactionTrace.class));
+    doNothing().when(managerMock)
+        .consumeMultiSignFee(any(TransactionCapsule.class), any(TransactionTrace.class));
+    doNothing().when(managerMock)
+        .consumeMemoFee(any(TransactionCapsule.class), any(TransactionTrace.class));
+    doNothing().when(managerMock)
+        .consumeBlobFee(any(TransactionCapsule.class), any(TransactionTrace.class));
+
+    Method method = Manager.class.getDeclaredMethod(
+        "applyBlock", BlockCapsule.class, List.class);
+    method.setAccessible(true);
+    method.invoke(managerMock, blockMock, Collections.singletonList(trxMock));
+
+    BlockCapsule blockCapsule1 = managerMock.getBlockStore().get(blockCapsule.getBlockId().getBytes());
+    Assert.assertEquals(1, blockCapsule1.getInstance().getBlobSidecar(0).getBlockNumber());
+    Assert.assertEquals(1, blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobsCount());
+    Assert.assertArrayEquals(blob,
+        blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobs(0).toByteArray());
   }
 }

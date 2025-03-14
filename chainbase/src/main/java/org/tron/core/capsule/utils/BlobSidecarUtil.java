@@ -49,7 +49,7 @@ public class BlobSidecarUtil {
     if (sidecar.getCommitmentsCount() != blobHashes.size()) {
       throw new ContractValidateException(
           String.format("invalid number of %d commitments compare to %d blob hashes",
-              sidecar.getBlobsCount(), blobHashes.size()));
+              sidecar.getCommitmentsCount(), blobHashes.size()));
     }
 
     if (sidecar.getProofsCount() != blobHashes.size()) {
@@ -80,8 +80,7 @@ public class BlobSidecarUtil {
             sidecar.getProofs(i).toByteArray())) {
           throw new ContractValidateException(String.format("invalid blob %d", i));
         }
-      }
-      catch (CKZGException e) {
+      } catch (CKZGException e) {
         throw new ContractValidateException(String.format("invalid blob %d", i));
       }
     }

@@ -846,7 +846,7 @@ public class ProposalUtil {
         }
         if (value < 0 || value > 1_000_000_000) {
           throw new ContractValidateException(
-              "This value[BLOB_FEE] is only allowed to be in the range 0-1000_000_000");
+              "This value[BLOB_FEE] is only allowed to be in the range 0-1_000_000_000");
         }
         break;
       }
@@ -948,7 +948,7 @@ public class ProposalUtil {
     ALLOW_STRICT_MATH(87), // 0, 1
     CONSENSUS_LOGIC_OPTIMIZATION(88), // 0, 1
     ALLOW_TVM_BLOB(89), // 0, 1
-    BLOB_FEE(90), // 0, [0, 1000_000_000]
+    BLOB_FEE(90), // 0, [0, 1_000_000_000]
     ALLOW_BLOB_TRANSACTION(91); // 0, 1
 
     private long code;

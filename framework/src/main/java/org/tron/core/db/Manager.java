@@ -896,6 +896,8 @@ public class Manager {
             String.format("too many blobs in transaction: have %d, permitted %d",
                 blobCount, MAX_BLOBS_PER_BLOCK));
       }
+    } else if (trx.isBlobTransaction()) {
+      return true;
     }
 
     pushTransactionQueue.add(trx);

@@ -679,8 +679,8 @@ public class OperationActions {
 
   public static void blobHashAction(Program program) {
     List<byte[]> versionedHashes = program.getVersionedHashes();
+    int versionedHashIndex = program.stackPop().intValueSafe();
     if (versionedHashes != null && !versionedHashes.isEmpty()) {
-      int versionedHashIndex = program.stackPop().intValueSafe();
       if (versionedHashIndex < versionedHashes.size() && versionedHashIndex >= 0) {
         byte[] versionedHash = versionedHashes.get(versionedHashIndex);
         DataWord versionedHashWord = new DataWord(versionedHash).clone();
