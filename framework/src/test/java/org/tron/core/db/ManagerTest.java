@@ -14,9 +14,11 @@ import static org.tron.protos.Protocol.Transaction.Result.contractResult.SUCCESS
 import com.beust.jcommander.internal.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Longs;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,7 +53,9 @@ import org.tron.core.Constant;
 import org.tron.core.Wallet;
 import org.tron.core.capsule.AccountCapsule;
 import org.tron.core.capsule.AssetIssueCapsule;
+import org.tron.core.capsule.BlobSidecarsCapsule;
 import org.tron.core.capsule.BlockCapsule;
+import org.tron.core.capsule.BytesCapsule;
 import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.capsule.WitnessCapsule;
 import org.tron.core.config.DefaultConfig;
@@ -84,6 +88,7 @@ import org.tron.core.exception.VMIllegalException;
 import org.tron.core.exception.ValidateScheduleException;
 import org.tron.core.exception.ValidateSignatureException;
 import org.tron.core.exception.ZksnarkException;
+import org.tron.core.net.peer.PeerManager;
 import org.tron.core.store.AccountStore;
 import org.tron.core.store.CodeStore;
 import org.tron.core.store.DynamicPropertiesStore;
@@ -1246,5 +1251,51 @@ public class ManagerTest extends BlockGenerate {
       throws BalanceInsufficientException {
     Commons.adjustBalance(accountStore, accountAddress, amount,
         chainManager.getDynamicPropertiesStore().disableJavaLangMath());
+  }
+
+  @Test
+  public void blockInitBlobSidecarsStore() throws Exception {
+
+    for (int i = 1; i <= 10; i++) {
+      Protocol.BlobSidecars blobSidecars = Protocol.BlobSidecars.newBuilder()
+          .addBlobSidecar(Protocol.BlobSidecar.newBuilder()
+          .setBlockNumber(1).build()).build();
+      dbManager.getChainBaseManager().getBlobSidecarsStore()
+          .put(BlobSidecarsCapsule.createDbKey(i), new BlobSidecarsCapsule(blobSidecars));
+    }
+
+    dbManager.getDynamicPropertiesStore().saveLatestBlockHeaderNumber(10);
+
+    dbManager.getDynamicPropertiesStore().saveAllowBlobTx(0);
+    Method method = dbManager.getClass().getDeclaredMethod("initBlobSidecarsStore");
+    method.setAccessible(true);
+    method.invoke(dbManager);
+
+    dbManager.getDynamicPropertiesStore().saveAllowBlobTx(1);
+    Args.getInstance().setMinBlocksForSidecarsRequests(10);
+    method.invoke(dbManager);
+
+    Args.getInstance().setMinBlocksForSidecarsRequests(10);
+    method.invoke(dbManager);
+
+    BlobSidecarsCapsule capsule = dbManager.getChainBaseManager()
+        .getBlobSidecarsStore().get(BlobSidecarsCapsule.createDbKey(5));
+    Assert.assertNotNull(capsule);
+
+    Args.getInstance().setMinBlocksForSidecarsRequests(5);
+    method.invoke(dbManager);
+
+    try {
+      dbManager.getChainBaseManager().getBlobSidecarsStore()
+          .get(BlobSidecarsCapsule.createDbKey(5));
+      Assert.fail();
+    } catch (Exception e) {
+      Assert.assertTrue(e instanceof ItemNotFoundException);
+    }
+
+    capsule = dbManager.getChainBaseManager().getBlobSidecarsStore()
+        .get(BlobSidecarsCapsule.createDbKey(6));
+
+    Assert.assertNotNull(capsule);
   }
 }

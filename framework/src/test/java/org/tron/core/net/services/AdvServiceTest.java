@@ -2,9 +2,9 @@ package org.tron.core.net.services;
 
 import static org.mockito.Mockito.mock;
 
+import com.google.protobuf.Any;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -31,6 +31,7 @@ import org.tron.core.net.service.adv.AdvService;
 import org.tron.p2p.connection.Channel;
 import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Inventory.InventoryType;
+import org.tron.protos.contract.SmartContractOuterClass;
 
 public class AdvServiceTest {
   private static TronApplicationContext context;
@@ -58,13 +59,13 @@ public class AdvServiceTest {
   }
 
   @Test
-  public void test() {
+  public void test() throws Exception {
     testAddInv();
     testBroadcast();
     testTrxBroadcast();
   }
 
-  private void testAddInv() {
+  private void testAddInv() throws Exception {
     boolean flag;
     Item itemTrx = new Item(Sha256Hash.ZERO_HASH, InventoryType.TRX);
     flag = service.addInv(itemTrx);
@@ -88,6 +89,40 @@ public class AdvServiceTest {
     service.addInvToCache(itemBlock);
     flag = service.addInv(itemBlock);
     Assert.assertFalse(flag);
+
+    Protocol.Transaction.Contract contract = Protocol.Transaction.Contract.newBuilder().build();
+    Protocol.Transaction trx = Protocol.Transaction.newBuilder().setRawData(
+        Protocol.Transaction.raw.newBuilder()
+          .addContract(contract)
+          .setRefBlockNum(1)
+          .setExpiration(System.currentTimeMillis() + 3000).build()).build();
+
+    Item item = new Item(new TransactionMessage(trx).getMessageId(), InventoryType.TRX);
+    Assert.assertNull(service.getMessage(item));
+    service.addMessage(new TransactionMessage(trx));
+    flag = service.addInv(item);
+    Assert.assertFalse(flag);
+    Assert.assertNotNull(service.getMessage(item));
+
+    SmartContractOuterClass.BlobContract blob =
+        SmartContractOuterClass.BlobContract.newBuilder().build();
+    contract = Protocol.Transaction.Contract.newBuilder()
+        .setType(Protocol.Transaction.Contract.ContractType.BlobContract)
+        .setParameter(Any.pack(blob)).build();
+
+    trx = Protocol.Transaction.newBuilder()
+      .setRawData(
+        Protocol.Transaction.raw.newBuilder()
+          .addContract(contract)
+          .setRefBlockNum(1)
+          .setExpiration(System.currentTimeMillis() + 3000).build()).build();
+
+    item = new Item(new TransactionMessage(trx).getMessageId(), InventoryType.TRX);
+    Assert.assertNull(service.getMessage(item));
+    service.addMessage(new TransactionMessage(trx));
+    flag = service.addInv(new Item(new TransactionMessage(trx).getMessageId(), InventoryType.TRX));
+    Assert.assertFalse(flag);
+    Assert.assertNotNull(service.getMessage(item));
   }
 
   private void testBroadcast() {
@@ -113,11 +148,14 @@ public class AdvServiceTest {
   }
 
   private void testTrxBroadcast() {
+    Protocol.Transaction.Contract contract = Protocol.Transaction.Contract.newBuilder().build();
     Protocol.Transaction trx = Protocol.Transaction.newBuilder()
         .setRawData(
         Protocol.Transaction.raw.newBuilder()
+            .addContract(contract)
             .setRefBlockNum(1)
             .setExpiration(System.currentTimeMillis() + 3000).build()).build();
+
     CommonParameter.getInstance().setValidContractProtoThreadNum(1);
     TransactionMessage msg = new TransactionMessage(trx);
     service.broadcast(msg);
@@ -127,6 +165,7 @@ public class AdvServiceTest {
     Protocol.Transaction expiredTrx = Protocol.Transaction.newBuilder()
         .setRawData(
             Protocol.Transaction.raw.newBuilder()
+            .addContract(contract)
             .setRefBlockNum(1)
             .setExpiration(System.currentTimeMillis() - 1).build())
         .build();

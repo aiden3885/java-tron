@@ -3,6 +3,7 @@ package org.tron.core.net.service.adv;
 import static org.tron.core.config.Parameter.ChainConstant.BLOCK_PRODUCED_INTERVAL;
 import static org.tron.core.config.Parameter.NetConstants.MAX_TRX_FETCH_PER_PEER;
 import static org.tron.core.config.Parameter.NetConstants.MSG_CACHE_DURATION_IN_BLOCKS;
+import static org.tron.protos.Protocol.Transaction.Contract.ContractType.BlobContract_VALUE;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -36,6 +37,7 @@ import org.tron.core.net.peer.Item;
 import org.tron.core.net.peer.PeerConnection;
 import org.tron.core.net.service.fetchblock.FetchBlockService;
 import org.tron.core.net.service.statistics.MessageCount;
+import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Inventory.InventoryType;
 
 @Slf4j(topic = "net")
@@ -43,6 +45,7 @@ import org.tron.protos.Protocol.Inventory.InventoryType;
 public class AdvService {
   private final int MAX_INV_TO_FETCH_CACHE_SIZE = 100_000;
   private final int MAX_TRX_CACHE_SIZE = 50_000;
+  private final int MAX_BLOB_TRX_CACHE_SIZE = 100;
   private final int MAX_BLOCK_CACHE_SIZE = 10;
   private final int MAX_SPREAD_SIZE = 1_000;
   private final long TIMEOUT = MSG_CACHE_DURATION_IN_BLOCKS * BLOCK_PRODUCED_INTERVAL;
@@ -65,6 +68,10 @@ public class AdvService {
 
   private Cache<Item, Message> trxCache = CacheBuilder.newBuilder()
       .maximumSize(MAX_TRX_CACHE_SIZE).expireAfterWrite(1, TimeUnit.HOURS)
+      .recordStats().build();
+
+  private Cache<Item, Message> blobTrxCache = CacheBuilder.newBuilder()
+      .maximumSize(MAX_BLOB_TRX_CACHE_SIZE).expireAfterWrite(1, TimeUnit.HOURS)
       .recordStats().build();
 
   private Cache<Item, Message> blockCache = CacheBuilder.newBuilder()
@@ -118,15 +125,11 @@ public class AdvService {
       return false;
     }
 
-    if (item.getType().equals(InventoryType.TRX) && trxCache.getIfPresent(item) != null) {
+    if (getMessage(item) != null) {
       return false;
     }
 
     if (item.getType().equals(InventoryType.BLOCK)) {
-      if (blockCache.getIfPresent(item) != null) {
-        return false;
-      }
-
       long solidNum = tronNetDelegate.getSolidifiedBlockNum();
       if (new BlockId(item.getHash()).getNum() <= solidNum) {
         return false;
@@ -149,10 +152,33 @@ public class AdvService {
   }
 
   public Message getMessage(Item item) {
+    Message message;
     if (item.getType() == InventoryType.TRX) {
-      return trxCache.getIfPresent(item);
+      message = trxCache.getIfPresent(item);
+      if (message == null) {
+        message = blobTrxCache.getIfPresent(item);
+      }
     } else {
-      return blockCache.getIfPresent(item);
+      message = blockCache.getIfPresent(item);
+    }
+    return message;
+  }
+
+  public void addMessage(Message message) {
+    if (message instanceof BlockMessage) {
+      BlockMessage blockMsg = (BlockMessage) message;
+      Item item = new Item(blockMsg.getMessageId(), InventoryType.BLOCK);
+      blockCache.put(item, message);
+    } else {
+      TransactionMessage trxMsg = (TransactionMessage) message;
+      Item item = new Item(trxMsg.getMessageId(), InventoryType.TRX);
+      Protocol.Transaction.Contract.ContractType type = trxMsg.getTransactionCapsule()
+          .getInstance().getRawData().getContract(0).getType();
+      if (type.equals(BlobContract_VALUE)) {
+        blobTrxCache.put(item, message);
+      } else {
+        trxCache.put(item, message);
+      }
     }
   }
 
@@ -169,7 +195,7 @@ public class AdvService {
 
     Item item = new Item(msg.getMessageId(), InventoryType.TRX);
     trxCount.add();
-    trxCache.put(item, new TransactionMessage(msg.getTransactionCapsule().getInstance()));
+    addMessage(msg);
 
     List<Sha256Hash> list = new ArrayList<>();
     list.add(msg.getMessageId());
@@ -207,16 +233,14 @@ public class AdvService {
       item = new Item(blockMsg.getMessageId(), InventoryType.BLOCK);
       logger.info("Ready to broadcast block {}", blockMsg.getBlockId().getString());
       blockMsg.getBlockCapsule().getTransactions().forEach(transactionCapsule -> {
-        Sha256Hash tid = transactionCapsule.getTransactionId();
-        trxCache.put(new Item(tid, InventoryType.TRX),
-            new TransactionMessage(transactionCapsule.getInstance()));
+        addMessage(new TransactionMessage(transactionCapsule.getInstance()));
       });
-      blockCache.put(item, msg);
+      addMessage(blockMsg);
     } else if (msg instanceof TransactionMessage) {
       TransactionMessage trxMsg = (TransactionMessage) msg;
       item = new Item(trxMsg.getMessageId(), InventoryType.TRX);
       trxCount.add();
-      trxCache.put(item, new TransactionMessage(trxMsg.getTransactionCapsule().getInstance()));
+      addMessage(trxMsg);
     } else {
       logger.error("Adv item is neither block nor trx, type: {}", msg.getType());
       return;

@@ -2968,9 +2968,13 @@ public class DynamicPropertiesStore extends TronStoreWithRevoking<BytesCapsule> 
 
   public long getAllowBlobTx() {
     return Optional.ofNullable(getUnchecked(ALLOW_BLOB_TX))
-        .map(BytesCapsule::getData)
-        .map(ByteArray::toLong)
-        .orElse(CommonParameter.getInstance().getAllowBlobTx());
+      .map(BytesCapsule::getData)
+      .map(ByteArray::toLong)
+      .orElse(CommonParameter.getInstance().getAllowBlobTx());
+  }
+
+  public boolean allowBlobTx() {
+    return getAllowBlobTx() == 1;
   }
 
   private static class DynamicResourceProperties {

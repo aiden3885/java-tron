@@ -1,10 +1,10 @@
 package org.tron.core.db;
 
 import static org.tron.common.math.Maths.floorDiv;
-import static org.tron.common.math.Maths.subtractExact;
 import static org.tron.common.math.Maths.max;
 import static org.tron.common.math.Maths.min;
 import static org.tron.common.math.Maths.multiplyExact;
+import static org.tron.common.math.Maths.subtractExact;
 import static org.tron.common.utils.Commons.adjustBalance;
 import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
 import static org.tron.core.Constant.TRANSACTION_MAX_BYTE_SIZE;
@@ -171,14 +171,13 @@ import org.tron.core.store.WitnessScheduleStore;
 import org.tron.core.store.WitnessStore;
 import org.tron.core.utils.TransactionRegister;
 import org.tron.protos.Protocol.AccountType;
+import org.tron.protos.Protocol.BlobSidecars;
 import org.tron.protos.Protocol.Permission;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract;
 import org.tron.protos.Protocol.TransactionInfo;
-import org.tron.protos.Protocol.BlobSidecars;
 import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
-
 
 @Slf4j(topic = "DB")
 @Component
@@ -194,6 +193,8 @@ public class Manager {
       Args.getInstance().getShieldedTransInPendingMaxCounts();
   private final int blobTransInPendingMaxCounts =
       Args.getInstance().getBlobTransInPendingMaxCounts();
+  private final byte[] MIN_BLOCKS_FOR_SIDECAR = "MIN_BLOCKS_FOR_SIDECAR".getBytes();
+
   @Getter
   @Setter
   public boolean eventPluginLoaded = false;
@@ -494,6 +495,7 @@ public class Manager {
     revokingStore.check();
     transactionCache.initCache();
     rewardViCalService.init();
+    initBlobSidecarsStore();
     this.setProposalController(ProposalController.createInstance(this));
     this.setMerkleContainer(
         merkleContainer.createInstance(chainBaseManager.getMerkleTreeStore(),
@@ -1266,6 +1268,27 @@ public class Manager {
 
   }
 
+  private void initBlobSidecarsStore() {
+    if (!getDynamicPropertiesStore().allowBlobTx()) {
+      return;
+    }
+    long current = Args.getInstance().getMinBlocksForSidecarsRequests();
+    CommonStore commonStore = chainBaseManager.getCommonStore();
+    BytesCapsule bytesCapsule = commonStore.get(MIN_BLOCKS_FOR_SIDECAR);
+    if (bytesCapsule == null) {
+      commonStore.put(MIN_BLOCKS_FOR_SIDECAR, new BytesCapsule(Longs.toByteArray(current)));
+      return;
+    }
+    commonStore.put(MIN_BLOCKS_FOR_SIDECAR, new BytesCapsule(Longs.toByteArray(current)));
+    long before = ByteArray.toLong(bytesCapsule.getData());
+    long head = getDynamicPropertiesStore().getLatestBlockHeaderNumber();
+    while (--before >= current) {
+      logger.info("### {}", head - before);
+      chainBaseManager.getBlobSidecarsStore()
+          .delete(BlobSidecarsCapsule.createDbKey(head - before));
+    }
+  }
+
   private void processBlobSidecars(BlockCapsule block) {
     // save blobs
     long minBlocksForSidecars = Args.getInstance().getMinBlocksForSidecarsRequests();
@@ -1753,11 +1776,10 @@ public class Manager {
 
       int totalBlobCount;
       try {
-          totalBlobCount =
-              BlobSidecarUtil.preValidateBlobTx(trx, packedBlobCount.get(),
-                  chainBaseManager.getDynamicPropertiesStore().disableJavaLangMath());
+        totalBlobCount = BlobSidecarUtil.preValidateBlobTx(trx, packedBlobCount.get(),
+            chainBaseManager.getDynamicPropertiesStore().disableJavaLangMath());
       } catch (ContractValidateException e) {
-          continue;
+        continue;
       }
       if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
         // push back to tx pool
