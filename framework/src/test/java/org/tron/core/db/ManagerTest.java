@@ -50,6 +50,7 @@ import org.tron.common.utils.ReflectUtils;
 import org.tron.common.utils.Sha256Hash;
 import org.tron.common.utils.StringUtil;
 import org.tron.common.utils.Utils;
+import org.tron.consensus.base.Param;
 import org.tron.consensus.dpos.DposSlot;
 import org.tron.core.ChainBaseManager;
 import org.tron.core.Constant;
@@ -58,6 +59,7 @@ import org.tron.core.capsule.AccountCapsule;
 import org.tron.core.capsule.AssetIssueCapsule;
 import org.tron.core.capsule.BlobSidecarsCapsule;
 import org.tron.core.capsule.BlockCapsule;
+import org.tron.core.capsule.ContractCapsule;
 import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.capsule.WitnessCapsule;
 import org.tron.core.config.DefaultConfig;
@@ -1570,5 +1572,93 @@ public class ManagerTest extends BlockGenerate {
     Assert.assertEquals(1, blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobsCount());
     Assert.assertArrayEquals(blob,
         blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobs(0).toByteArray());
+  }
+
+  @Test
+  public void generateBlockWithBlobTrxTest() throws Exception {
+    dbManager.getDynamicPropertiesStore().saveAllowBlobTransaction(1);
+    AccountCapsule account =
+        new AccountCapsule(Account.newBuilder()
+            .setAddress(ByteString.copyFrom(accountAddress.getBytes()))
+            .setBalance(1000000000)
+            .setAccountName(ByteString.copyFrom("test".getBytes()))
+            .build());
+    chainManager.getAccountStore().put(account.createDbKey(), account);
+
+    byte[] blob = new byte[131072];
+    blob[0] = 0x01;
+    byte[] versionedHash =
+        Hex.decode("015a4cab4911426699ed34483de6640cf55a568afc5c5edffdcbd8bcd4452f68");
+    byte[] commitment =
+        Hex.decode("a70477b56251e8770969c83eaed665d3ab99b96b72270a4100"
+            + "9f2752b5c06a06bd089ad48952c12b1dbf83dccd9d373f");
+    byte[] proof =
+        Hex.decode("b7f576f2442febaa035d3c6f34bbdad6acebcaec70236ff40b"
+            + "3373bd2ca00547d3ca7bb1d0ed3e728ca9dab610a4cfa4");
+    TransactionCapsule blobTrx = getBlobTrxCap(blob, versionedHash, commitment, proof);
+
+    TransactionCapsule trxMock = spy(blobTrx);
+    doReturn(true).when(trxMock)
+        .validatePubSignature(any(AccountStore.class), any(DynamicPropertiesStore.class));
+    doReturn(true).when(trxMock)
+        .validateSignature(any(AccountStore.class), any(DynamicPropertiesStore.class));
+
+    Args.setParam(new String[]{}, Constant.TEST_CONF);
+    String key = PublicMethod.getRandomPrivateKey();
+    byte[] privateKey = ByteArray.fromHexString(key);
+    final ECKey ecKey = ECKey.fromPrivate(privateKey);
+    byte[] address = ecKey.getAddress();
+
+    ByteString addressByte = ByteString.copyFrom(address);
+    AccountCapsule accountCapsule =
+        new AccountCapsule(Protocol.Account.newBuilder()
+            .setAddress(addressByte).build());
+    chainManager.getAccountStore()
+        .put(addressByte.toByteArray(), accountCapsule);
+
+    WitnessCapsule witnessCapsule = new WitnessCapsule(ByteString.copyFrom(address));
+    chainManager.getWitnessScheduleStore().saveActiveWitnesses(new ArrayList<>());
+    chainManager.addWitness(ByteString.copyFrom(address));
+    chainManager.getWitnessStore().put(address, witnessCapsule);
+
+    Manager managerMock = spy(dbManager);
+    doNothing().when(managerMock).validateCommon(any(TransactionCapsule.class));
+    doNothing().when(managerMock).validateDup(any(TransactionCapsule.class));
+    doNothing().when(managerMock).validateTapos(any(TransactionCapsule.class));
+    doNothing().when(managerMock)
+        .consumeBandwidth(any(TransactionCapsule.class), any(TransactionTrace.class));
+    doNothing().when(managerMock)
+        .consumeMultiSignFee(any(TransactionCapsule.class), any(TransactionTrace.class));
+    doNothing().when(managerMock)
+        .consumeMemoFee(any(TransactionCapsule.class), any(TransactionTrace.class));
+    doNothing().when(managerMock)
+        .consumeBlobFee(any(TransactionCapsule.class), any(TransactionTrace.class));
+    managerMock.pushTransaction(trxMock);
+
+    long blockTime = 1533529947843L;
+    Param param = Param.getInstance();
+    Param.Miner miner = param.new Miner(privateKey, witnessCapsule.getAddress(), witnessCapsule.getAddress());
+    BlockCapsule blockCapsule = managerMock
+        .generateBlock(miner, blockTime, System.currentTimeMillis() + 3000);
+    Assert.assertTrue(blockCapsule.getTransactions().get(0).isBlobTransaction());
+
+    SmartContractOuterClass.BlobContract blobContract =
+        ContractCapsule.getBlobContractFromTransaction(blockCapsule.getTransactions().get(0).getInstance());
+    Assert.assertEquals(1, blobContract.getBlobHashesCount());
+    Assert.assertEquals(0, blobContract.getSidecar().getBlobsCount());
+    Assert.assertEquals(0, blobContract.getSidecar().getCommitmentsCount());
+    Assert.assertEquals(0, blobContract.getSidecar().getProofsCount());
+    Assert.assertEquals(1, blockCapsule.getInstance().getBlobSidecarCount());
+
+    Protocol.BlobSidecar blobSidecar = blockCapsule.getInstance().getBlobSidecarList().get(0);
+    Assert.assertEquals(blockCapsule.getNum(), blobSidecar.getBlockNumber());
+    Assert.assertEquals(blockCapsule.getBlockId().getByteString(), blobSidecar.getBlockHash());
+    Assert.assertEquals(0, blobSidecar.getTxIndex());
+    Assert.assertEquals(blobTrx.getTransactionId().getByteString(), blobSidecar.getTxHash());
+
+    Assert.assertEquals(1, blobSidecar.getSidecar().getBlobsCount());
+    Assert.assertEquals(1, blobSidecar.getSidecar().getCommitmentsCount());
+    Assert.assertEquals(1, blobSidecar.getSidecar().getProofsCount());
+    Assert.assertArrayEquals(blob, blobSidecar.getSidecar().getBlobs(0).toByteArray());
   }
 }
