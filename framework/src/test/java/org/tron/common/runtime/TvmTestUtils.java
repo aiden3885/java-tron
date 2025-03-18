@@ -34,8 +34,6 @@ import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.SmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
 
-import static org.tron.protos.Protocol.Transaction.Contract.ContractType.BlobContract;
-
 
 /**
  * Below functions mock the process to deploy, trigger a contract. Not consider of the transaction

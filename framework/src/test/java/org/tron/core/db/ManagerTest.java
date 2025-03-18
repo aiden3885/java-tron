@@ -1567,8 +1567,10 @@ public class ManagerTest extends BlockGenerate {
     method.setAccessible(true);
     method.invoke(managerMock, blockMock, Collections.singletonList(trxMock));
 
-    BlockCapsule blockCapsule1 = managerMock.getBlockStore().get(blockCapsule.getBlockId().getBytes());
-    Assert.assertEquals(1, blockCapsule1.getInstance().getBlobSidecar(0).getBlockNumber());
+    BlockCapsule blockCapsule1
+        = managerMock.getBlockStore().get(blockCapsule.getBlockId().getBytes());
+    Assert.assertEquals(1,
+        blockCapsule1.getInstance().getBlobSidecar(0).getBlockNumber());
     Assert.assertEquals(1, blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobsCount());
     Assert.assertArrayEquals(blob,
         blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobs(0).toByteArray());
@@ -1637,13 +1639,15 @@ public class ManagerTest extends BlockGenerate {
 
     long blockTime = 1533529947843L;
     Param param = Param.getInstance();
-    Param.Miner miner = param.new Miner(privateKey, witnessCapsule.getAddress(), witnessCapsule.getAddress());
-    BlockCapsule blockCapsule = managerMock
-        .generateBlock(miner, blockTime, System.currentTimeMillis() + 3000);
+    Param.Miner miner =
+        param.new Miner(privateKey, witnessCapsule.getAddress(), witnessCapsule.getAddress());
+    BlockCapsule blockCapsule =
+        managerMock.generateBlock(miner, blockTime, System.currentTimeMillis() + 3000);
     Assert.assertTrue(blockCapsule.getTransactions().get(0).isBlobTransaction());
 
     SmartContractOuterClass.BlobContract blobContract =
-        ContractCapsule.getBlobContractFromTransaction(blockCapsule.getTransactions().get(0).getInstance());
+        ContractCapsule.getBlobContractFromTransaction(
+            blockCapsule.getTransactions().get(0).getInstance());
     Assert.assertEquals(1, blobContract.getBlobHashesCount());
     Assert.assertEquals(0, blobContract.getSidecar().getBlobsCount());
     Assert.assertEquals(0, blobContract.getSidecar().getCommitmentsCount());
