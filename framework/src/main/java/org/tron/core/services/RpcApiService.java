@@ -144,6 +144,8 @@ import org.tron.protos.contract.ProposalContract.ProposalCreateContract;
 import org.tron.protos.contract.ProposalContract.ProposalDeleteContract;
 import org.tron.protos.contract.ShieldContract.IncrementalMerkleVoucherInfo;
 import org.tron.protos.contract.ShieldContract.OutputPointInfo;
+import org.tron.protos.contract.SmartContractOuterClass;
+import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 import org.tron.protos.contract.SmartContractOuterClass.ClearABIContract;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.SmartContract;
@@ -1764,6 +1766,12 @@ public class RpcApiService extends RpcService {
         StreamObserver<TransactionExtention> responseObserver) {
 
       callContract(request, responseObserver, false);
+    }
+
+    @Override
+    public void triggerBlobContract(BlobContract request,
+        StreamObserver<TransactionExtention> responseObserver) {
+      createTransactionExtention(request, ContractType.BlobContract, responseObserver);
     }
 
     @Override

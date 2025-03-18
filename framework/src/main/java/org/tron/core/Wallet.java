@@ -480,7 +480,8 @@ public class Wallet {
     TransactionCapsule trx = new TransactionCapsule(message, contractType);
     trx.setTransactionCreate(true);
     if (contractType != ContractType.CreateSmartContract
-        && contractType != ContractType.TriggerSmartContract) {
+        && contractType != ContractType.TriggerSmartContract
+        && contractType != ContractType.BlobContract) {
       List<Actuator> actList = ActuatorFactory.createActuator(trx, chainBaseManager);
       for (Actuator act : actList) {
         act.validate();

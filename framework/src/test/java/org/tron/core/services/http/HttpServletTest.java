@@ -141,6 +141,7 @@ public class HttpServletTest {
   private WithdrawExpireUnfreezeServlet withdrawExpireUnfreezeServlet;
   private CancelAllUnfreezeV2Servlet cancelAllUnfreezeV2Servlet;
   private GetBlobSidecarsServlet getBlobSidecarsServlet;
+  private TriggerBlobContractServlet triggerBlobContractServlet;
   private MockHttpServletRequest request;
   private MockHttpServletResponse response;
 
@@ -279,6 +280,7 @@ public class HttpServletTest {
     withdrawExpireUnfreezeServlet = new WithdrawExpireUnfreezeServlet();
     cancelAllUnfreezeV2Servlet = new CancelAllUnfreezeV2Servlet();
     getBlobSidecarsServlet = new GetBlobSidecarsServlet();
+    triggerBlobContractServlet = new TriggerBlobContractServlet();
     request = new MockHttpServletRequest();
     request.setCharacterEncoding("UTF-8");
     response = new MockHttpServletResponse();

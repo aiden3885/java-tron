@@ -19,6 +19,7 @@ import org.tron.core.Constant;
 import org.tron.core.capsule.AccountCapsule;
 import org.tron.core.capsule.AssetIssueCapsule;
 import org.tron.core.capsule.TransactionCapsule;
+import org.tron.core.capsule.utils.BlobSidecarUtil;
 import org.tron.core.exception.AccountResourceInsufficientException;
 import org.tron.core.exception.ContractValidateException;
 import org.tron.core.exception.TooBigTransactionException;
@@ -114,11 +115,9 @@ public class BandwidthProcessor extends ResourceProcessor {
     long bytesSize;
 
     if (chainBaseManager.getDynamicPropertiesStore().supportVM()) {
-      if (trx.isBlobTransaction()) {
-        bytesSize = trx.getTransactionWithoutBlob().toBuilder().clearRet().build().getSerializedSize();
-      } else {
-        bytesSize = trx.getInstance().toBuilder().clearRet().build().getSerializedSize();
-      }
+      bytesSize
+          = BlobSidecarUtil.getTransactionWithoutSidecar(
+              trx.getInstance()).toBuilder().clearRet().build().getSerializedSize();
     } else {
       bytesSize = trx.getSerializedSize();
     }

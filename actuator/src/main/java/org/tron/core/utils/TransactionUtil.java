@@ -42,6 +42,7 @@ import org.tron.common.utils.Sha256Hash;
 import org.tron.core.ChainBaseManager;
 import org.tron.core.capsule.AccountCapsule;
 import org.tron.core.capsule.TransactionCapsule;
+import org.tron.core.capsule.utils.BlobSidecarUtil;
 import org.tron.core.exception.PermissionException;
 import org.tron.core.exception.SignatureFormatException;
 import org.tron.core.store.DynamicPropertiesStore;
@@ -223,9 +224,11 @@ public class TransactionUtil {
         tswBuilder.setPermission(permission);
         if (trx.getSignatureCount() > 0) {
           List<ByteString> approveList = new ArrayList<>();
+          byte[] trxRawData
+              = BlobSidecarUtil.getTransactionWithoutSidecar(trx).getRawData().toByteArray();
           long currentWeight = TransactionCapsule.checkWeight(permission, trx.getSignatureList(),
               Sha256Hash.hash(CommonParameter.getInstance()
-                  .isECKeyCryptoEngine(), trx.getRawData().toByteArray()), approveList);
+                  .isECKeyCryptoEngine(), trxRawData), approveList);
           tswBuilder.addAllApprovedList(approveList);
           tswBuilder.setCurrentWeight(currentWeight);
         }

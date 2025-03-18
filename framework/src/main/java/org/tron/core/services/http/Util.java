@@ -462,6 +462,14 @@ public class Util {
     return (bigDecimal == null) ? 0L : bigDecimal.longValueExact();
   }
 
+  public static JSONArray getJsonArray(JSONObject jsonObject, String key, boolean required) {
+    JSONArray array = jsonObject.getJSONArray(key);
+    if (required && (array == null || array.isEmpty())) {
+      throw new InvalidParameterException("key [" + key + "] does not exist");
+    }
+    return (array == null) ? new JSONArray() : array;
+  }
+
   public static String getMemo(byte[] memo) {
     int index = memo.length;
     for (; index > 0; --index) {

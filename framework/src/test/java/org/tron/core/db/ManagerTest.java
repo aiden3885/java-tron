@@ -1571,7 +1571,8 @@ public class ManagerTest extends BlockGenerate {
         = managerMock.getBlockStore().get(blockCapsule.getBlockId().getBytes());
     Assert.assertEquals(1,
         blockCapsule1.getInstance().getBlobSidecar(0).getBlockNumber());
-    Assert.assertEquals(1, blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobsCount());
+    Assert.assertEquals(1,
+        blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobsCount());
     Assert.assertArrayEquals(blob,
         blockCapsule1.getInstance().getBlobSidecar(0).getSidecar().getBlobs(0).toByteArray());
   }

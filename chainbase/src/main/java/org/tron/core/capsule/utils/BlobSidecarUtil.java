@@ -15,6 +15,7 @@
 
 package org.tron.core.capsule.utils;
 
+import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,8 +30,11 @@ import org.tron.core.capsule.ContractCapsule;
 import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.exception.BadBlockException;
 import org.tron.core.exception.ContractValidateException;
+import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.BlobSidecar;
 import org.tron.protos.Protocol.BlobTxSidecar;
+import org.tron.protos.Protocol.Transaction;
+import org.tron.protos.Protocol.Transaction.Contract.ContractType;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
 import static org.tron.common.math.Maths.addExact;
@@ -80,7 +84,7 @@ public class BlobSidecarUtil {
             sidecar.getProofs(i).toByteArray())) {
           throw new ContractValidateException(String.format("invalid blob %d", i));
         }
-      } catch (CKZGException e) {
+      } catch (RuntimeException e) {
         throw new ContractValidateException(String.format("invalid blob %d", i));
       }
     }
@@ -132,7 +136,7 @@ public class BlobSidecarUtil {
 
     int totalBlobCount = 0;
     for (BlobSidecar blobSidecar: sidecarsList) {
-      validateBlockBlobSidecar(blobSidecar, block.getNum(), block.getBlockId().getByteString());
+      validateBlockBlobSidecar(blobSidecar, block.getNum(), block.getBlockId().getBytes());
       totalBlobCount = addExact(totalBlobCount, blobSidecar.getSidecar().getBlobsCount(), disableJavaLangMath);
     }
 
@@ -168,12 +172,13 @@ public class BlobSidecarUtil {
     }
   }
 
-  public static void validateBlockBlobSidecar(BlobSidecar blobSidecar, long blockNum, ByteString blockHash)
+  public static void validateBlockBlobSidecar(
+      BlobSidecar blobSidecar, long blockNum, byte[] blockHash)
       throws BadBlockException {
     if (blobSidecar.getBlockNumber() != blockNum) {
       throw new BadBlockException("BlobSidecar with wrong block number");
     }
-    if (!blobSidecar.getBlockHash().equals(blockHash)) {
+    if (!Arrays.equals(blobSidecar.getBlockHash().toByteArray(), blockHash)) {
       throw new BadBlockException("BlobSidecar with wrong block hash");
     }
     if (blobSidecar.getSidecar().getBlobsCount()
@@ -184,5 +189,27 @@ public class BlobSidecarUtil {
         != blobSidecar.getSidecar().getProofsCount()) {
       throw new BadBlockException("BlobSidecar has wrong proof count");
     }
+  }
+
+  public static Transaction getTransactionWithoutSidecar(Transaction transaction) {
+    if (transaction.getRawData().getContract(0).getType() != ContractType.BlobContract) {
+      return transaction;
+    }
+    Protocol.Transaction.Contract contract = transaction.getRawData().getContract(0);
+    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transaction);
+    BlobContract blobContractWithoutBlob = blobContract.toBuilder().clearSidecar().build();
+
+    return Protocol.Transaction.newBuilder()
+        .mergeFrom(transaction)
+        .setRawData(
+            Protocol.Transaction.raw
+                .newBuilder()
+                .mergeFrom(transaction.getRawData())
+                .setContract(
+                    0,
+                    Protocol.Transaction.Contract.newBuilder()
+                        .mergeFrom(contract)
+                        .setParameter(Any.pack(blobContractWithoutBlob))))
+        .build();
   }
 }

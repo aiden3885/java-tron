@@ -1833,7 +1833,7 @@ public class Manager {
         if (trx.isBlobTransaction()) {
           TransactionCapsule.TxId txId = new TransactionCapsule.TxId(index, trx.getTransactionId());
           blobTxToBePacked.put(txId, trx.getInstance());
-          trx.setTransaction(trx.getTransactionWithoutBlob());
+          trx.setTransaction(BlobSidecarUtil.getTransactionWithoutSidecar(trx.getInstance()));
         }
 
         toBePacked.add(trx);

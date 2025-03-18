@@ -52,6 +52,7 @@ import org.tron.common.utils.ForkController;
 import org.tron.common.utils.ReflectUtils;
 import org.tron.common.utils.Sha256Hash;
 import org.tron.core.actuator.TransactionFactory;
+import org.tron.core.capsule.utils.BlobSidecarUtil;
 import org.tron.core.config.Parameter;
 import org.tron.core.db.TransactionContext;
 import org.tron.core.db.TransactionTrace;
@@ -80,7 +81,6 @@ import org.tron.protos.contract.BalanceContract;
 import org.tron.protos.contract.BalanceContract.TransferContract;
 import org.tron.protos.contract.ShieldContract.ShieldedTransferContract;
 import org.tron.protos.contract.ShieldContract.SpendDescription;
-import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
 import org.tron.protos.contract.SmartContractOuterClass.TriggerSmartContract;
 import org.tron.protos.contract.WitnessContract.VoteWitnessContract;
@@ -576,13 +576,10 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
   }
 
   private Sha256Hash getRawHash() {
-    if (isBlobTransaction()) {
-      Transaction transactionWithoutBlob = getTransactionWithoutBlob();
-      return Sha256Hash.of(CommonParameter.getInstance().isECKeyCryptoEngine(),
-              transactionWithoutBlob.getRawData().toByteArray());
-    }
+    Transaction transactionWithoutBlob
+        = BlobSidecarUtil.getTransactionWithoutSidecar(transaction);
     return Sha256Hash.of(CommonParameter.getInstance().isECKeyCryptoEngine(),
-        this.transaction.getRawData().toByteArray());
+        transactionWithoutBlob.getRawData().toByteArray());
   }
 
   public void sign(byte[] privateKey) {
@@ -733,7 +730,8 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
    */
   public long computeTrxSizeForBlockMessage() {
     if (isBlobTransaction()) {
-      return CodedOutputStream.computeMessageSize(1, getTransactionWithoutBlob())
+      return CodedOutputStream.computeMessageSize(1,
+          BlobSidecarUtil.getTransactionWithoutSidecar(transaction))
           + BLOB_TRANSACTION_EXTRA_PACK_SIZE;
     }
     return CodedOutputStream.computeMessageSize(1, this.transaction);
@@ -902,22 +900,6 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
 
   public int getContractCount() {
     return this.getInstance().getRawData().getContractCount();
-  }
-
-  public Transaction getTransactionWithoutBlob() {
-    if (!isBlobTransaction()) {
-      return transaction;
-    }
-    Transaction.Contract contract = transaction.getRawData().getContract(0);
-    BlobContract blobContract = ContractCapsule.getBlobContractFromTransaction(transaction);
-    BlobContract blobContractWithoutBlob = blobContract.toBuilder().clearSidecar().build();
-
-    return Transaction.newBuilder().mergeFrom(transaction).setRawData(
-            raw.newBuilder().mergeFrom(transaction.getRawData()).setContract(0,
-                    Transaction.Contract.newBuilder().mergeFrom(contract).setParameter(
-                            Any.pack(blobContractWithoutBlob)
-                    ))
-    ).build();
   }
 
   public boolean isBlobTransaction() {

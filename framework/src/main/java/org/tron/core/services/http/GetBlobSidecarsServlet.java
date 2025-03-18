@@ -27,8 +27,14 @@ public class GetBlobSidecarsServlet extends RateLimiterServlet {
   protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     try {
       long blockNum = Long.parseLong(request.getParameter("block"));
-      List<String> rawIndices =
-          Arrays.stream(request.getParameterValues("indices")).collect(Collectors.toList());
+      String[] indicesStrs = request.getParameterValues("indices");
+      List<String> rawIndices;
+      if (indicesStrs == null) {
+        rawIndices = new ArrayList<>();
+      } else {
+        rawIndices =
+            Arrays.stream(request.getParameterValues("indices")).collect(Collectors.toList());
+      }
       List<Integer> indices = parseIndices(rawIndices);
       fillResponse(blockNum, indices, response);
     } catch (Exception e) {
