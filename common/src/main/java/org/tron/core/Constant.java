@@ -41,7 +41,7 @@ public class Constant {
   public static final long CREATOR_DEFAULT_ENERGY_LIMIT = 1000 * 10_000L;
   public static final int MAX_BLOBS_PER_BLOCK = 6;
   public static final long MIN_BLOCKS_FOR_SIDECARS_REQUESTS = 524288;
-  public static final long BLOB_TRANSACTION_EXTRA_PACK_SIZE = 72;
+  public static final long BLOB_TRANSACTION_EXTRA_PACK_SIZE = 90;
 
 
   // Numbers
