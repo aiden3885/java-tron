@@ -264,6 +264,9 @@ public class VMActuator implements Actuator2 {
 
         }
       } else {
+        if (VMConfig.allowBlobTransaction()) {
+          result.setResultCode(contractResult.SUCCESS);
+        }
         rootRepository.commit();
       }
       for (DataWord account : result.getDeleteAccounts()) {
