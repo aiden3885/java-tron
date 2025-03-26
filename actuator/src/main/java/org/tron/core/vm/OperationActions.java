@@ -678,17 +678,22 @@ public class OperationActions {
   }
 
   public static void blobHashAction(Program program) {
-    List<byte[]> versionedHashes = program.getVersionedHashes();
-    int versionedHashIndex = program.stackPop().intValueSafe();
-    if (versionedHashes != null && !versionedHashes.isEmpty()) {
-      if (versionedHashIndex < versionedHashes.size() && versionedHashIndex >= 0) {
-        byte[] versionedHash = versionedHashes.get(versionedHashIndex);
-        DataWord versionedHashWord = new DataWord(versionedHash).clone();
-        program.stackPush(versionedHashWord);
+    if (VMConfig.allowBlobTransaction()) {
+      List<byte[]> versionedHashes = program.getVersionedHashes();
+      int versionedHashIndex = program.stackPop().intValueSafe();
+      if (versionedHashes != null && !versionedHashes.isEmpty()) {
+        if (versionedHashIndex < versionedHashes.size() && versionedHashIndex >= 0) {
+          byte[] versionedHash = versionedHashes.get(versionedHashIndex);
+          DataWord versionedHashWord = new DataWord(versionedHash).clone();
+          program.stackPush(versionedHashWord);
+        } else {
+          program.stackPush(DataWord.ZERO());
+        }
       } else {
         program.stackPush(DataWord.ZERO());
       }
     } else {
+      program.stackPop();
       program.stackPush(DataWord.ZERO());
     }
 
@@ -696,10 +701,13 @@ public class OperationActions {
   }
 
   public static void blobBaseFeeAction(Program program) {
-    DataWord blobFee =
-        new DataWord(program.getContractState().getDynamicPropertiesStore().getBlobFee());
-
-    program.stackPush(blobFee);
+    if (VMConfig.allowBlobTransaction()) {
+      DataWord blobFee =
+          new DataWord(program.getContractState().getDynamicPropertiesStore().getBlobFee());
+      program.stackPush(blobFee);
+    } else {
+      program.stackPush(DataWord.ZERO());
+    }
     program.step();
   }
 
