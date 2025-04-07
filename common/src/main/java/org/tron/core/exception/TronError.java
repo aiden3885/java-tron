@@ -48,8 +48,7 @@ public class TronError extends Error {
     LOG_LOAD(1),
     WITNESS_INIT(1),
     RATE_LIMITER_INIT(1),
-    SOLID_NODE_INIT(0),
-    CKZG_INIT(1);
+    SOLID_NODE_INIT(0);
 
     private final int code;
 

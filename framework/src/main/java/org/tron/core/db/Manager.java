@@ -3,8 +3,8 @@ package org.tron.core.db;
 import static org.tron.common.math.Maths.floorDiv;
 import static org.tron.common.math.Maths.max;
 import static org.tron.common.math.Maths.min;
-import static org.tron.common.math.Maths.multiplyExact;
-import static org.tron.common.math.Maths.subtractExact;
+import static org.tron.common.math.StrictMathWrapper.multiplyExact;
+import static org.tron.common.math.StrictMathWrapper.subtractExact;
 import static org.tron.common.utils.Commons.adjustBalance;
 import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
 import static org.tron.core.Constant.TRANSACTION_MAX_BYTE_SIZE;
@@ -888,9 +888,8 @@ public class Manager {
       return true;
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTransaction() == 1) {
-      int blobCount = BlobSidecarUtil.preValidateBlobTx(
-          trx, 0, getDynamicPropertiesStore().disableJavaLangMath());
+    if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      int blobCount = BlobSidecarUtil.preValidateBlobTx(trx, 0);
       if (blobCount > MAX_BLOBS_PER_BLOCK) {
         throw new ContractValidateException(
             String.format("too many blobs in transaction: have %d, permitted %d",
@@ -1048,19 +1047,18 @@ public class Manager {
       return;
     }
 
-    boolean disableMath = getDynamicPropertiesStore().disableJavaLangMath();
     byte[] address = TransactionCapsule.getOwner(trx.getInstance().getRawData().getContract(0));
     AccountCapsule accountCapsule = getAccountStore().get(address);
-    long totalFee = multiplyExact(fee, blobCount, disableMath);
+    long totalFee = multiplyExact(fee, blobCount);
     try {
       if (accountCapsule != null) {
-        adjustBalance(getAccountStore(), accountCapsule, -totalFee, disableMath);
+        adjustBalance(getAccountStore(), accountCapsule, -totalFee, true);
 
         if (getDynamicPropertiesStore().supportBlackHoleOptimization()) {
           getDynamicPropertiesStore().burnTrx(totalFee);
         } else {
           adjustBalance(getAccountStore(), this.getAccountStore().getBlackhole(), +totalFee,
-              disableMath);
+              true);
         }
       }
     } catch (BalanceInsufficientException e) {
@@ -1302,10 +1300,7 @@ public class Manager {
 
       // delete blobs before
       long blockNumToDeleteBlob =
-          subtractExact(
-              block.getNum(),
-              minBlocksForSidecars,
-              getDynamicPropertiesStore().disableJavaLangMath());
+          subtractExact(block.getNum(), minBlocksForSidecars);
       if (blockNumToDeleteBlob > 0) {
         chainBaseManager.getBlobSidecarsStore()
             .delete(BlobSidecarsCapsule.createDbKey(blockNumToDeleteBlob));
@@ -1777,8 +1772,7 @@ public class Manager {
 
       int totalBlobCount;
       try {
-        totalBlobCount = BlobSidecarUtil.preValidateBlobTx(trx, packedBlobCount.get(),
-            chainBaseManager.getDynamicPropertiesStore().disableJavaLangMath());
+        totalBlobCount = BlobSidecarUtil.preValidateBlobTx(trx, packedBlobCount.get());
       } catch (ContractValidateException e) {
         continue;
       }
@@ -1820,7 +1814,6 @@ public class Manager {
       if (ownerAddressSet.contains(ownerAddress)) {
         trx.setVerified(false);
       }
-
       // apply transaction
       try (ISession tmpSession = revokingStore.buildSession()) {
         accountStateCallBack.preExeTrans();
@@ -1952,8 +1945,8 @@ public class Manager {
       }
     }
 
-    if (chainBaseManager.getDynamicPropertiesStore().getAllowBlobTransaction() == 1) {
-      BlobSidecarUtil.validateBlockBlobTx(block, getDynamicPropertiesStore().disableJavaLangMath());
+    if (chainBaseManager.getDynamicPropertiesStore().allowBlobTx()) {
+      BlobSidecarUtil.validateBlockBlobTx(block);
     }
 
     TransactionRetCapsule transactionRetCapsule =

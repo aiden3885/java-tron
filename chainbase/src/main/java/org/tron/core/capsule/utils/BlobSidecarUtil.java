@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.tron.common.crypto.ckzg4844.CKZG4844JNI;
-import org.tron.common.crypto.ckzg4844.CKZGException;
 import org.tron.common.crypto.ckzg4844.KZG4844;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.core.capsule.BlockCapsule;
@@ -37,7 +36,7 @@ import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract.ContractType;
 import org.tron.protos.contract.SmartContractOuterClass.BlobContract;
 
-import static org.tron.common.math.Maths.addExact;
+import static org.tron.common.math.StrictMathWrapper.addExact;
 import static org.tron.core.Constant.MAX_BLOBS_PER_BLOCK;
 
 public class BlobSidecarUtil {
@@ -90,8 +89,7 @@ public class BlobSidecarUtil {
     }
   }
 
-  public static int preValidateBlobTx(
-      TransactionCapsule trx, int packedCount, boolean disableJavaLangMath)
+  public static int preValidateBlobTx(TransactionCapsule trx, int packedCount)
       throws ContractValidateException {
     if (!trx.isBlobTransaction()) {
       return 0;
@@ -106,8 +104,7 @@ public class BlobSidecarUtil {
     if (blobCount == 0) {
       throw new ContractValidateException("blobless blob transaction");
     }
-    int totalBlobCount =
-        addExact(packedCount, blobCount, disableJavaLangMath);
+    int totalBlobCount = addExact(packedCount, blobCount);
     if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {
       return totalBlobCount;
     }
@@ -119,7 +116,7 @@ public class BlobSidecarUtil {
     return blobContract.getBlobHashesList().size();
   }
 
-  public static void validateBlockBlobTx(BlockCapsule block, boolean disableJavaLangMath)
+  public static void validateBlockBlobTx(BlockCapsule block)
       throws BadBlockException, ContractValidateException {
     List<BlobSidecar> sidecarsList = block.getInstance().getBlobSidecarList();
     if (sidecarsList.isEmpty()) {
@@ -137,7 +134,7 @@ public class BlobSidecarUtil {
     int totalBlobCount = 0;
     for (BlobSidecar blobSidecar: sidecarsList) {
       validateBlockBlobSidecar(blobSidecar, block.getNum(), block.getBlockId().getBytes());
-      totalBlobCount = addExact(totalBlobCount, blobSidecar.getSidecar().getBlobsCount(), disableJavaLangMath);
+      totalBlobCount = addExact(totalBlobCount, blobSidecar.getSidecar().getBlobsCount());
     }
 
     if (totalBlobCount > MAX_BLOBS_PER_BLOCK) {

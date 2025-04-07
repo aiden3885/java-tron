@@ -27,7 +27,6 @@ import org.tron.core.store.StoreFactory;
 import org.tron.core.vm.repository.Repository;
 import org.tron.core.vm.repository.RepositoryImpl;
 
-import org.tron.protos.Protocol;
 import org.tron.protos.Protocol.Transaction;
 import org.tron.protos.Protocol.Transaction.Contract.ContractType;
 import org.tron.protos.contract.SmartContractOuterClass.CreateSmartContract;
@@ -659,8 +658,7 @@ public class TvmTestUtils {
   }
 
   public static Transaction createDefaultTransaction() {
-    Protocol.Transaction.Contract contract =
-        Protocol.Transaction.Contract.newBuilder().build();
+    Transaction.Contract contract = Transaction.Contract.newBuilder().build();
     return Transaction.newBuilder().setRawData(
         Transaction.raw.getDefaultInstance().toBuilder().addContract(contract)).build();
   }
