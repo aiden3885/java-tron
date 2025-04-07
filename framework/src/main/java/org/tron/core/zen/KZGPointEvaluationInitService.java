@@ -9,10 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Component;
 import org.tron.common.crypto.ckzg4844.CKZG4844JNI;
-import org.tron.common.zksnark.JLibrustzcash;
-import org.tron.common.zksnark.LibrustzcashParam;
 import org.tron.core.exception.TronError;
-import org.tron.core.exception.ZksnarkException;
 
 @Slf4j
 @Component
