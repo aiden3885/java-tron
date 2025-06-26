@@ -48,6 +48,8 @@ public class MetricsHistogram {
     init(MetricKeys.Histogram.BLOCK_FETCH_LATENCY, "fetch block latency.");
     init(MetricKeys.Histogram.BLOCK_RECEIVE_DELAY,
         "receive block delay time, receiveTime - blockTime.");
+    init(MetricKeys.Histogram.DB_OPERATE_LATENCY, "db operate latency .", "type", "db", "op");
+    init(MetricKeys.Histogram.VM_OPCODE_LATENCY, "vm opcode latency .", "op");
   }
 
   private MetricsHistogram() {

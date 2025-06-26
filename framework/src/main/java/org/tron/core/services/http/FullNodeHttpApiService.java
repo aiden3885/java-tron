@@ -290,6 +290,17 @@ public class FullNodeHttpApiService extends HttpService {
   private UnDelegateResourceServlet unDelegateResourceServlet;
   @Autowired
   private CancelAllUnfreezeV2Servlet cancelAllUnfreezeV2Servlet;
+  @Autowired
+  private GetOpTimeServlet getOpTimeServlet;
+  @Autowired
+  private RunOpServlet runOpServlet;
+  @Autowired
+  private PreOpServlet preOpServlet;
+  @Autowired
+  private GenerateAddressServlet generateAddressServlet;
+
+  @Autowired
+  private GenerateContractServlet generateContractServlet;
 
   public FullNodeHttpApiService() {
     port = Args.getInstance().getFullNodeHttpPort();
@@ -299,7 +310,12 @@ public class FullNodeHttpApiService extends HttpService {
 
   @Override
   protected void addServlet(ServletContextHandler context) {
-    context.addServlet(new ServletHolder(getAccountServlet), "/wallet/getaccount");
+      context.addServlet(new ServletHolder(generateContractServlet), "/wallet/generateContract");
+      context.addServlet(new ServletHolder(generateAddressServlet), "/wallet/generateAddress");
+      context.addServlet(new ServletHolder(preOpServlet), "/wallet/preOp");
+      context.addServlet(new ServletHolder(runOpServlet), "/wallet/runOp");
+      context.addServlet(new ServletHolder(getOpTimeServlet), "/wallet/getoptime");
+      context.addServlet(new ServletHolder(getAccountServlet), "/wallet/getaccount");
     context.addServlet(new ServletHolder(transferServlet), "/wallet/createtransaction");
     context.addServlet(new ServletHolder(broadcastServlet), "/wallet/broadcasttransaction");
     context.addServlet(new ServletHolder(updateAccountServlet), "/wallet/updateaccount");

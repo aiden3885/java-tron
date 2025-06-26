@@ -1479,6 +1479,10 @@ public class Manager {
         MetricKeys.Histogram.PROCESS_TRANSACTION_LATENCY,
         Objects.nonNull(blockCap) ? MetricLabels.BLOCK : MetricLabels.TRX,
         contract.getType().name());
+    final Histogram.Timer requestLongCostTimer = Metrics.histogramStartTimer(
+        MetricKeys.Histogram.PROCESS_TRANSACTION_LATENCY,
+        Objects.nonNull(blockCap) ? MetricLabels.BLOCK + "-gt100" : MetricLabels.TRX + "-gt100",
+        contract.getType().name());
 
     long start = System.currentTimeMillis();
 
@@ -1570,6 +1574,7 @@ public class Manager {
       }
       logger.info("Process transaction {} cost {} ms during {}, {}",
              Hex.toHexString(transactionInfo.getId()), cost, type, contract.getType().name());
+      Metrics.histogramObserve(requestLongCostTimer);
     }
     Metrics.histogramObserve(requestTimer);
     return transactionInfo.getInstance();
@@ -1715,7 +1720,13 @@ public class Manager {
         logSize[0], logSize[1], logSize[2], logSize[3],
         pendingTransactions.size(), rePushTransactions.size(), postponedTrxCount,
         capsule.getSerializedSize());
-
+    if (capsule.getTransactions().isEmpty()) {
+      Metrics.counterInc(MetricKeys.Counter.MINER, 1, address, "empty");
+    } else {
+      Metrics.counterInc(MetricKeys.Counter.MINER, capsule.getTransactions().size(),
+          address, "trx");
+    }
+    Metrics.counterInc(MetricKeys.Counter.MINER, 1, address, "block");
     return capsule;
   }
 
