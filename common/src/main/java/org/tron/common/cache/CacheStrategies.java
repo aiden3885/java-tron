@@ -38,13 +38,13 @@ public class CacheStrategies {
       votes, abi);
   private static final String CACHE_STRATEGY_NORMAL_DEFAULT =
       String.format(PATTERNS, 500, 500, "30s", CPUS);
-  private static final List<CacheType> CACHE_NORMAL_DBS = Arrays.asList(code, contract,
+  private static final List<CacheType> CACHE_NORMAL_DBS = Arrays.asList(code,
       assetIssueV2, properties);
   private static final String CACHE_STRATEGY_BIG_DEFAULT =
       String.format(PATTERNS, 10000, 10000, "30s", CPUS);
   private static final String CACHE_STRATEGY_HUGE_DEFAULT =
       String.format(PATTERNS, 20000, 20000, "30s", CPUS);
-  private static final List<CacheType> CACHE_HUGE_DBS = Arrays.asList(storageRow, account);
+  private static final List<CacheType> CACHE_HUGE_DBS = Arrays.asList(storageRow, account, contract);
 
   public static final List<String> CACHE_DBS = Stream.of(CACHE_SMALL_DBS, CACHE_NORMAL_DBS,
           CACHE_BIG_DBS, CACHE_HUGE_DBS).flatMap(Collection::stream).map(CacheType::toString)
