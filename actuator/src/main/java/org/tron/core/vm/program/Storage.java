@@ -74,7 +74,9 @@ public class Storage {
     if (rowCache.containsKey(key)) {
       return new DataWord(rowCache.get(key).getValue());
     } else {
-      StorageRowCapsule row = store.get(compose(key.getData(), addrHash));
+//      StorageRowCapsule row = store.get(compose(key.getData(), addrHash));
+      compose(key.getData(), addrHash);
+      StorageRowCapsule row = store.get(key.getData());
       if (row == null || row.getInstance() == null) {
         return null;
       }
