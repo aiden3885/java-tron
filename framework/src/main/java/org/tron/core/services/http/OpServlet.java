@@ -1,20 +1,16 @@
 package org.tron.core.services.http;
 
 import com.alibaba.fastjson.JSONObject;
-import io.prometheus.client.Histogram;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.util.StringUtil;
-import org.tron.common.prometheus.MetricKeys;
-import org.tron.common.prometheus.Metrics;
 import org.tron.common.runtime.InternalTransaction;
 import org.tron.common.runtime.vm.DataWord;
 import org.tron.core.exception.ContractValidateException;
 import org.tron.core.store.StoreFactory;
 import org.tron.core.vm.JumpTable;
-import org.tron.core.vm.Op;
 import org.tron.core.vm.Operation;
 import org.tron.core.vm.OperationRegistry;
 import org.tron.core.vm.program.Program;
@@ -30,7 +26,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Stream;
 
 @Slf4j(topic = "api")
 public abstract class OpServlet extends RateLimiterServlet{
@@ -65,6 +60,8 @@ public abstract class OpServlet extends RateLimiterServlet{
     private long lastCost;
 
     protected List<String> addressList;
+
+    protected List<String> storageKeyList;
 
     private int curIndex = 0;
 
@@ -182,6 +179,11 @@ public abstract class OpServlet extends RateLimiterServlet{
                         readFile();
                     }
                     program.stackPush(new DataWord(addressList.get(random.nextInt(addressList.size()))));
+                } else if (value.equals("randomKey")) {
+                    if (storageKeyList == null) {
+                        readStorageKeys();
+                    }
+                    program.stackPush(new DataWord(storageKeyList.get(random.nextInt(storageKeyList.size()))));
                 }
                 else {
                     isRandomAddress = false;
@@ -203,6 +205,15 @@ public abstract class OpServlet extends RateLimiterServlet{
         if (curIndex >= addressList.size()) {
             curIndex = 0;
         }
+    }
+
+    private void readStorageKeys() throws IOException {
+        String fileName = "storageKeys.txt";
+        storageKeyList = new ArrayList();
+        Files.lines(Paths.get(fileName)).forEach(line -> {
+            storageKeyList.add(line.trim());
+        });
+
     }
 
     @SneakyThrows
