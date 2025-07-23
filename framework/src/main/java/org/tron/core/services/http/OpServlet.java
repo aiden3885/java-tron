@@ -184,6 +184,11 @@ public abstract class OpServlet extends RateLimiterServlet{
                         readStorageKeys();
                     }
                     program.stackPush(new DataWord(storageKeyList.get(random.nextInt(storageKeyList.size()))));
+                } else if (value.equals(RANDOM_CONTRACT)) {
+                    if (contractList == null) {
+                      loadContractAddressFile();
+                    }
+                    program.stackPush(new DataWord(contractList.get(random.nextInt(contractList.size()))));
                 }
                 else {
                     isRandomAddress = false;

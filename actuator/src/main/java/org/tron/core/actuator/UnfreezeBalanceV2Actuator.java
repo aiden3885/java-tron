@@ -41,7 +41,7 @@ import org.tron.protos.contract.BalanceContract.UnfreezeBalanceV2Contract;
 public class UnfreezeBalanceV2Actuator extends AbstractActuator {
 
   @Getter
-  private static final int UNFREEZE_MAX_TIMES = 32;
+  private static final int UNFREEZE_MAX_TIMES = 64;
 
   public UnfreezeBalanceV2Actuator() {
     super(ContractType.UnfreezeBalanceV2Contract, UnfreezeBalanceV2Contract.class);
