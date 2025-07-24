@@ -36,10 +36,11 @@ public class PreOpServlet extends OpServlet {
                 byte[] bytecodes = getBytecodes(map);
                 String codeAddress = getCodeAddress(map);
                 List<String> stacks = getStacks(map);
+                List<String> memory = getMemory(map);
                 lastCost = Long.MAX_VALUE;
                 while (true) {
                     cost = 0;
-                    runOp(bytecodes, codeAddress, stacks);
+                    runOp(bytecodes, codeAddress, stacks, memory);
                     long avgCost = cost / round;
                     fileWriter.write(String.format("%s\t%d\n", opName, avgCost));
                     if (lastCost < cost) {
@@ -57,4 +58,5 @@ public class PreOpServlet extends OpServlet {
             addressList = null;
         }
     }
+
 }

@@ -214,7 +214,7 @@ public class UnDelegateResourceProcessor {
           toKey, new DelegatedResourceAccountIndexCapsule(new byte[0]));
     }
 
-    logger.info("undelegate completed");
+//    logger.info("undelegate completed");
     repo.updateDelegatedResource(key, delegatedResourceCapsule);
     repo.updateAccount(ownerCapsule.createDbKey(), ownerCapsule);
   }

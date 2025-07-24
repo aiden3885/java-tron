@@ -35,9 +35,10 @@ public class RunOpServlet extends OpServlet {
                 byte[] bytecodes = getBytecodes(map);
                 String codeAddress = getCodeAddress(map);
                 List<String> stacks = getStacks(map);
+                List<String> memorys = getMemory(map);
                 cost = 0;
                 costList = new ArrayList<>();
-                runOp(bytecodes, codeAddress, stacks);
+                runOp(bytecodes, codeAddress, stacks, memorys);
                 long avgCost = cost / round;
                 logger.info("run op : " + opName + " cost: " + avgCost);
                 String rangeInfo = countRange(avgCost);

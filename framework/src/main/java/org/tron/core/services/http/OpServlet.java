@@ -53,8 +53,6 @@ public abstract class OpServlet extends RateLimiterServlet{
 
     protected List<Long> costList;
 
-    boolean isRandomAddress = false;
-
     byte[] randomAddress;
 
     private long lastCost;
@@ -135,7 +133,14 @@ public abstract class OpServlet extends RateLimiterServlet{
         return Collections.emptyList();
     }
 
-    protected void runOp(byte[] bytecodes, String codeAddressStr, List<String> stackValues) throws ContractValidateException, IOException {
+    protected List<String> getMemory(Map<String, Object> map) {
+        if (map.containsKey("memory")) {
+            return (List)map.get("memory");
+        }
+        return Collections.emptyList();
+    }
+
+    protected void runOp(byte[] bytecodes, String codeAddressStr, List<String> stackValues, List<String> memoryValues) throws ContractValidateException, IOException {
         maxCost = Long.MIN_VALUE;
         minCost = Long.MAX_VALUE;
         lastCost = Long.MIN_VALUE;
@@ -162,45 +167,54 @@ public abstract class OpServlet extends RateLimiterServlet{
             program.setAdjustedCallEnergy(new DataWord(1_000_000_000));
             program.setRootTransactionId(new byte[32]);
             for (String value : stackValues) {
-                if (value.equals("randomAddress")) {
-                    isRandomAddress = true;
-                    randomAddress = generateAddress();
-                    program.stackPush(new DataWord(randomAddress.clone()));
-                }
-                else if (value.equals("accountAddress")) {
-                    if (addressList == null) {
-                        readFile();
-                    }
-                    program.stackPush(new DataWord(addressList.get(curIndex)));
-                    curIndex++;
-                    if (curIndex == addressList.size()) {
-                        curIndex = 0;
-                    }
-                } else if (value.equals("randomAccount")) {
-                    if (addressList == null) {
-                        readFile();
-                    }
-                    program.stackPush(new DataWord(addressList.get(random.nextInt(addressList.size()))));
-                } else if (value.equals("randomKey")) {
-                    if (storageKeyList == null) {
-                        readStorageKeys();
-                    }
-                    program.stackPush(new DataWord(storageKeyList.get(random.nextInt(storageKeyList.size()))));
-                } else if (value.equals(RANDOM_CONTRACT)) {
-                    if (contractList == null) {
-                      loadContractAddressFile();
-                    }
-                    program.stackPush(new DataWord(contractList.get(random.nextInt(contractList.size()))));
-                }
-                else {
-                    isRandomAddress = false;
-                    program.stackPush(new DataWord(value));
-                }
+                DataWord stackValue = getDataWord(value);
+                program.stackPush(stackValue);
+
+            }
+            int addr = 0;
+            for (String value : memoryValues) {
+                DataWord memoryValue = getDataWord(value);
+                program.memorySave(addr, memoryValue.getData());
+                addr += DataWord.WORD_SIZE;
             }
             testSingleOpration(program);
         }
         addressList = null;
         contractList = null;
+    }
+
+    private DataWord getDataWord(String value) throws IOException {
+        if (value.equals("randomAddress")) {
+            randomAddress = generateAddress();
+            return new DataWord(randomAddress.clone());
+        }
+        else if (value.equals("accountAddress")) {
+            if (addressList == null) {
+                readFile();
+            }
+            if (curIndex == addressList.size()) {
+                curIndex = 0;
+            }
+            return new DataWord(addressList.get(curIndex));
+        } else if (value.equals("randomAccount")) {
+            if (addressList == null) {
+                readFile();
+            }
+            return new DataWord(addressList.get(random.nextInt(addressList.size())));
+        } else if (value.equals("randomKey")) {
+            if (storageKeyList == null) {
+                readStorageKeys();
+            }
+            return new DataWord(storageKeyList.get(random.nextInt(storageKeyList.size())));
+        } else if (value.equals(RANDOM_CONTRACT)) {
+            if (contractList == null) {
+                loadContractAddressFile();
+            }
+            return new DataWord(contractList.get(random.nextInt(contractList.size())));
+        }
+        else {
+            return new DataWord(value);
+        }
     }
 
     private void readFile() throws IOException {
@@ -253,12 +267,6 @@ public abstract class OpServlet extends RateLimiterServlet{
         }
         maxCost = Math.max(maxCost, curCost);
         minCost = Math.min(minCost, curCost);
-        if (isRandomAddress) {
-            if (curCost > lastCost) {
-                logger.info(String.format("curCost: %d, randomAddress: %s", curCost, Hex.toHexString(randomAddress)));
-                lastCost = curCost;
-            }
-        }
         cost += curCost;
         program.setPreviouslyExecutedOp((byte) op.getOpcode());
     }
