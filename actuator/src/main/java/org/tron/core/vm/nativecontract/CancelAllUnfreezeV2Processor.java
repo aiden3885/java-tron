@@ -57,7 +57,7 @@ public class CancelAllUnfreezeV2Processor {
     ownerCapsule.clearUnfrozenV2();
 
     repo.updateAccount(ownerCapsule.createDbKey(), ownerCapsule);
-    logger.info("cancel unfreeze completed");
+//    logger.info("cancel unfreeze completed");
     return withdrawExpireBalance;
   }
 

@@ -81,7 +81,7 @@ public class WithdrawExpireUnfreezeProcessor {
     ownerCapsule.clearUnfrozenV2();
     ownerCapsule.addAllUnfrozenV2(newUnFreezeList);
     repo.updateAccount(ownerCapsule.createDbKey(), ownerCapsule);
-    logger.info("withdrawExpireUnfreeze completed");
+//    logger.info("withdrawExpireUnfreeze completed");
     return totalWithdrawUnfreeze;
   }
 

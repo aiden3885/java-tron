@@ -143,7 +143,7 @@ public class UnfreezeBalanceV2Processor {
     }
 
     repo.updateAccount(accountCapsule.createDbKey(), accountCapsule);
-    logger.info("unfreeze complete");
+//    logger.info("unfreeze complete");
     return unfreezeExpireBalance;
   }
 

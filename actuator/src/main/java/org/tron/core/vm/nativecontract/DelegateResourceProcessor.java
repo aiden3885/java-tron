@@ -139,7 +139,7 @@ public class DelegateResourceProcessor {
       default:
         logger.debug("Resource Code Error.");
     }
-    logger.info("delegate resource completed");
+//    logger.info("delegate resource completed");
     repo.updateAccount(ownerCapsule.createDbKey(), ownerCapsule);
   }
 

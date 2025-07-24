@@ -94,9 +94,9 @@ public class VoteWitnessProcessor {
       }
       sum =  LongMath.checkedMultiply(sum, TRX_PRECISION);
       if (sum > tronPower) {
-        throw new ContractExeException(
-            "The total number of votes[" + sum + "] is greater than the tronPower[" + tronPower
-                + "]");
+//        throw new ContractExeException(
+//            "The total number of votes[" + sum + "] is greater than the tronPower[" + tronPower
+//                + "]");
       }
     } catch (ArithmeticException e) {
       throw new ContractExeException(e.getMessage());
@@ -108,5 +108,6 @@ public class VoteWitnessProcessor {
     }
     repo.updateAccount(accountCapsule.createDbKey(), accountCapsule);
     repo.updateVotes(ownerAddress, votesCapsule);
+    logger.info("vote witness completed");
   }
 }

@@ -94,7 +94,7 @@ public class UnDelegateResourceProcessor {
         throw new ContractValidateException(
             "Unknown ResourceCode, valid ResourceCode[BANDWIDTH、ENERGY]");
     }
-    logger.info("undelegate validate completed");
+//    logger.info("undelegate validate completed");
   }
 
   public void execute(UnDelegateResourceParam param, Repository repo) {

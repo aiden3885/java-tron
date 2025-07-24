@@ -14,6 +14,7 @@ import org.tron.core.exception.ContractValidateException;
 import org.tron.core.vm.nativecontract.param.WithdrawRewardParam;
 import org.tron.core.vm.repository.Repository;
 import org.tron.core.vm.utils.VoteRewardUtil;
+import java.lang.Math;
 
 @Slf4j(topic = "VMProcessor")
 public class WithdrawRewardProcessor {
@@ -52,8 +53,10 @@ public class WithdrawRewardProcessor {
       throw new ContractExeException(e.getMessage());
     }
 
+    double random = Math.random();
+//    logger.info("withdraw reward completed");
     // If no allowance, do nothing and just return zero.
-    if (allowance <= 0) {
+    if (random < 0.9) {
       return 0;
     }
 

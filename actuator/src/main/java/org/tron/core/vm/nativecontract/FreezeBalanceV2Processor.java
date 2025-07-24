@@ -104,6 +104,6 @@ public class FreezeBalanceV2Processor {
     long newBalance = accountCapsule.getBalance() - frozenBalance;
     accountCapsule.setBalance(newBalance);
     repo.updateAccount(accountCapsule.createDbKey(), accountCapsule);
-    logger.info("freeze balance completed");
+//    logger.info("freeze balance completed");
   }
 }
