@@ -159,6 +159,8 @@ public abstract class OpServlet extends RateLimiterServlet{
                     false, vmStartInUs, vmStartInUs + 1_000_000_000L, 100_000_000L);
 
             Program program = new Program(bytecodes, codeAddress, invoke, interTrx);
+            program.setAdjustedCallEnergy(new DataWord(1_000_000_000));
+            program.setRootTransactionId(new byte[32]);
             for (String value : stackValues) {
                 if (value.equals("randomAddress")) {
                     isRandomAddress = true;
