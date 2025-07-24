@@ -108,6 +108,6 @@ public class VoteWitnessProcessor {
     }
     repo.updateAccount(accountCapsule.createDbKey(), accountCapsule);
     repo.updateVotes(ownerAddress, votesCapsule);
-    logger.info("vote witness completed");
+//    logger.info("vote witness completed");
   }
 }
