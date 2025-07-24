@@ -165,7 +165,7 @@ public abstract class OpServlet extends RateLimiterServlet{
 
             Program program = new Program(bytecodes, codeAddress, invoke, interTrx);
             program.setAdjustedCallEnergy(new DataWord(1_000_000_000));
-            program.setRootTransactionId(new byte[32]);
+            program.setRootTransactionId(generateAddress());
             for (String value : stackValues) {
                 DataWord stackValue = getDataWord(value);
                 program.stackPush(stackValue);
