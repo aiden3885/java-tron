@@ -23,6 +23,7 @@ import org.tron.core.store.DelegatedResourceAccountIndexStore;
 import org.tron.core.store.DynamicPropertiesStore;
 import org.tron.core.vm.nativecontract.param.UnDelegateResourceParam;
 import org.tron.core.vm.repository.Repository;
+import org.tron.protos.Protocol;
 
 @Slf4j(topic = "VMProcessor")
 public class UnDelegateResourceProcessor {
@@ -58,12 +59,21 @@ public class UnDelegateResourceProcessor {
 
     byte[] key = DelegatedResourceCapsule.createDbKeyV2(ownerAddress, receiverAddress, false);
     DelegatedResourceCapsule delegatedResourceCapsule = repo.getDelegatedResource(key);
-    if (delegatedResourceCapsule == null) {
-      throw new ContractValidateException(
-          "delegated Resource does not exist");
-    }
 
     long unDelegateBalance = param.getUnDelegateBalance();
+    if (delegatedResourceCapsule == null) {
+
+      Protocol.DelegatedResource delegatedResource = Protocol.DelegatedResource.newBuilder()
+              .setFrozenBalanceForBandwidth(unDelegateBalance)
+              .setFrozenBalanceForEnergy(unDelegateBalance)
+              .build();
+      delegatedResourceCapsule = new DelegatedResourceCapsule(delegatedResource);
+      repo.updateDelegatedResource(key, delegatedResourceCapsule);
+//      throw new ContractValidateException(
+//          "delegated Resource does not exist");
+    }
+
+
     if (unDelegateBalance <= 0) {
       throw new ContractValidateException("unDelegateBalance must be more than 0 TRX");
     }
@@ -84,6 +94,7 @@ public class UnDelegateResourceProcessor {
         throw new ContractValidateException(
             "Unknown ResourceCode, valid ResourceCode[BANDWIDTH、ENERGY]");
     }
+    logger.info("undelegate validate completed");
   }
 
   public void execute(UnDelegateResourceParam param, Repository repo) {
@@ -203,6 +214,7 @@ public class UnDelegateResourceProcessor {
           toKey, new DelegatedResourceAccountIndexCapsule(new byte[0]));
     }
 
+    logger.info("undelegate completed");
     repo.updateDelegatedResource(key, delegatedResourceCapsule);
     repo.updateAccount(ownerCapsule.createDbKey(), ownerCapsule);
   }

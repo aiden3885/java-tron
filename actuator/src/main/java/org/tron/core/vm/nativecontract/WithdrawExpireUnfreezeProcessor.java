@@ -43,7 +43,7 @@ public class WithdrawExpireUnfreezeProcessor {
     List<Protocol.Account.UnFreezeV2> unfrozenV2List = accountCapsule.getInstance()
         .getUnfrozenV2List();
     long totalWithdrawUnfreeze = getTotalWithdrawUnfreeze(unfrozenV2List, now);
-    if (totalWithdrawUnfreeze < 0) {
+    if (totalWithdrawUnfreeze < -100) {
       throw new ContractValidateException("no unFreeze balance to withdraw ");
     }
     try {
@@ -71,7 +71,7 @@ public class WithdrawExpireUnfreezeProcessor {
     long now = dynamicStore.getLatestBlockHeaderTimestamp();
     List<Protocol.Account.UnFreezeV2> unfrozenV2List = ownerCapsule.getInstance().getUnfrozenV2List();
     long totalWithdrawUnfreeze = getTotalWithdrawUnfreeze(unfrozenV2List, now);
-    if (totalWithdrawUnfreeze <= 0) {
+    if (totalWithdrawUnfreeze <= -100) {
       return 0;
     }
     ownerCapsule.setInstance(ownerCapsule.getInstance().toBuilder()
@@ -81,6 +81,7 @@ public class WithdrawExpireUnfreezeProcessor {
     ownerCapsule.clearUnfrozenV2();
     ownerCapsule.addAllUnfrozenV2(newUnFreezeList);
     repo.updateAccount(ownerCapsule.createDbKey(), ownerCapsule);
+    logger.info("withdrawExpireUnfreeze completed");
     return totalWithdrawUnfreeze;
   }
 

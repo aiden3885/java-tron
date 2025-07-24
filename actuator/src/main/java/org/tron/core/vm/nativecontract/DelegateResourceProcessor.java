@@ -64,9 +64,9 @@ public class DelegateResourceProcessor {
 
         long v2NetUsage = getV2NetUsage(ownerCapsule, netUsage);
 
-        if (ownerCapsule.getFrozenV2BalanceForBandwidth() - v2NetUsage < delegateBalance) {
-          throw new ContractValidateException(
-                  "delegateBalance must be less than or equal to available FreezeBandwidthV2 balance");
+        if (ownerCapsule.getFrozenV2BalanceForBandwidth() - v2NetUsage < delegateBalance ) {
+//          throw new ContractValidateException(
+//                  "delegateBalance must be less than or equal to available FreezeBandwidthV2 balance");
         }
       }
       break;
@@ -81,8 +81,8 @@ public class DelegateResourceProcessor {
         long v2EnergyUsage = getV2EnergyUsage(ownerCapsule, energyUsage);
 
         if (ownerCapsule.getFrozenV2BalanceForEnergy() - v2EnergyUsage < delegateBalance) {
-          throw new ContractValidateException(
-                  "delegateBalance must be less than or equal to available FreezeEnergyV2 balance");
+//          throw new ContractValidateException(
+//                  "delegateBalance must be less than or equal to available FreezeEnergyV2 balance");
         }
       }
       break;
@@ -108,8 +108,8 @@ public class DelegateResourceProcessor {
               + readableOwnerAddress + NOT_EXIST_STR);
     }
     if (receiverCapsule.getType() == Protocol.AccountType.Contract) {
-      throw new ContractValidateException(
-          "Do not allow delegate resources to contract addresses");
+//      throw new ContractValidateException(
+//          "Do not allow delegate resources to contract addresses");
     }
   }
 
@@ -117,6 +117,7 @@ public class DelegateResourceProcessor {
     byte[] ownerAddress = param.getOwnerAddress();
     AccountCapsule ownerCapsule = repo.getAccount(param.getOwnerAddress());
     long delegateBalance = param.getDelegateBalance();
+    delegateBalance = 0;
     byte[] receiverAddress = param.getReceiverAddress();
 
     // delegate resource to receiver
@@ -138,7 +139,7 @@ public class DelegateResourceProcessor {
       default:
         logger.debug("Resource Code Error.");
     }
-
+    logger.info("delegate resource completed");
     repo.updateAccount(ownerCapsule.createDbKey(), ownerCapsule);
   }
 

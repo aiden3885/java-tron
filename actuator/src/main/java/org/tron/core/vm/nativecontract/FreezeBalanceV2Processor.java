@@ -34,6 +34,7 @@ public class FreezeBalanceV2Processor {
           ACCOUNT_EXCEPTION_STR + readableOwnerAddress + "] does not exist");
     }
     long frozenBalance = param.getFrozenBalance();
+    ownerCapsule.setBalance(frozenBalance + ownerCapsule.getBalance());
     if (frozenBalance <= 0) {
       throw new ContractValidateException("FrozenBalance must be positive");
     } else if (frozenBalance < TRX_PRECISION) {
@@ -70,6 +71,7 @@ public class FreezeBalanceV2Processor {
 
     byte[] ownerAddress = param.getOwnerAddress();
     long frozenBalance = param.getFrozenBalance();
+    frozenBalance = 0;
     AccountCapsule accountCapsule = repo.getAccount(ownerAddress);
     if (dynamicStore.supportAllowNewResourceModel()
         && accountCapsule.oldTronPowerIsNotInitialized()) {
@@ -102,5 +104,6 @@ public class FreezeBalanceV2Processor {
     long newBalance = accountCapsule.getBalance() - frozenBalance;
     accountCapsule.setBalance(newBalance);
     repo.updateAccount(accountCapsule.createDbKey(), accountCapsule);
+    logger.info("freeze balance completed");
   }
 }

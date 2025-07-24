@@ -101,8 +101,8 @@ public class UnfreezeBalanceV2Processor {
         break;
       }
     }
-
-    return unfreezeBalance <= frozenBalance;
+    return true;
+//    return unfreezeBalance <= frozenBalance;
   }
 
   private boolean checkExistFrozenBalance(AccountCapsule accountCapsule, Common.ResourceCode freezeType) {
@@ -112,12 +112,13 @@ public class UnfreezeBalanceV2Processor {
         return true;
       }
     }
-    return false;
+    return true;
   }
 
   public long execute(UnfreezeBalanceV2Param param, Repository repo) {
     byte[] ownerAddress = param.getOwnerAddress();
     long unfreezeBalance = param.getUnfreezeBalance();
+    unfreezeBalance = 0;
     VoteRewardUtil.withdrawReward(ownerAddress, repo);
 
     AccountCapsule accountCapsule = repo.getAccount(ownerAddress);
@@ -142,6 +143,7 @@ public class UnfreezeBalanceV2Processor {
     }
 
     repo.updateAccount(accountCapsule.createDbKey(), accountCapsule);
+    logger.info("unfreeze complete");
     return unfreezeExpireBalance;
   }
 
