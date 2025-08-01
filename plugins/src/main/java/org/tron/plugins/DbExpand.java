@@ -49,7 +49,8 @@ public class DbExpand implements Callable<Integer> {
 
   @CommandLine.Option(names = {"--target-type"},
       defaultValue = "0",
-      description = "0 reWrite 1 Cold Data + Warm Data 2. Warm Data + Cold Data")
+      description = "0 reWrite 1 Cold Data + Warm Data 2. Warm Data + Cold Data 3. Cold Data by count 4. Cold Empty " +
+       "Data by count")
   private int targetType;
 
   @CommandLine.Option(names = {"--expend-rate"},
@@ -178,6 +179,26 @@ public class DbExpand implements Callable<Integer> {
 //          "%s Merge Warm Data %s to Cold Data %s done",
 //          dateFormat.format(new Date()), sourcePath, targetPath));
       source.close();
+    } else if (targetType == 4) {
+      // generate Cold Data
+      logger.info("Generate Cold Data start in path {}", targetPath);
+      spec.commandLine().getOut().println(String.format("%s Generate Cold Data start in path %s",
+          dateFormat.format(new Date()), targetPath));
+      generateColdEmptyDataByCount(source, target, expandCount);
+      logger.info("Generate Cold Data done in path {}", targetPath);
+//      spec.commandLine().getOut().println(String.format("%s Generate Cold Data done in path %s",
+//          dateFormat.format(new Date()), targetPath));
+//      // merge Warm Data to Cold Data
+//      logger.info("Merge Warm Data {} to Cold Data {} start", sourcePath, targetPath);
+//      spec.commandLine().getOut().println(String.format(
+//          "%s Merge Warm Data %s to Cold Data %s start",
+//          dateFormat.format(new Date()), sourcePath, targetPath));
+//      merge(source, target);
+//      logger.info("Merge Warm Data {} to Cold Data {} done", sourcePath, targetPath);
+//      spec.commandLine().getOut().println(String.format(
+//          "%s Merge Warm Data %s to Cold Data %s done",
+//          dateFormat.format(new Date()), sourcePath, targetPath));
+      source.close();
     }
 
     logger.info("Expand db {} done", targetDb);
@@ -273,6 +294,36 @@ public class DbExpand implements Callable<Integer> {
           byte[] key = generateAddress();
           keys.add(key);
           values.add(entry.getValue());
+          if (keys.size() >= BATCH) {
+            insertToLevelDb(coldData, keys, values);
+          }
+        }
+        if (!keys.isEmpty()) {
+          insertToLevelDb(coldData, keys, values);
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+
+    } finally {
+      JniDBFactory.popMemoryPool();
+    }
+  }
+  
+  private void generateColdEmptyDataByCount(DB source, DB coldData, int count) {
+    JniDBFactory.pushMemoryPool(2048 * 2048);
+    try {
+      int idx = 0;
+      List<byte[]> keys = new ArrayList<>(BATCH);
+      List<byte[]> values = new ArrayList<>(BATCH);
+      try (DBIterator levelIterator = source.iterator(
+          new org.iq80.leveldb.ReadOptions().fillCache(false))) {
+        levelIterator.seekToFirst();
+        while (levelIterator.hasNext() && idx++ < count) {
+          Map.Entry<byte[], byte[]> entry = levelIterator.next();
+          byte[] key = generateAddress();
+          keys.add(key);
+          values.add(new byte[0]);
           if (keys.size() >= BATCH) {
             insertToLevelDb(coldData, keys, values);
           }
