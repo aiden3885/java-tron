@@ -2,9 +2,11 @@ package org.tron.core.services.http;
 
 import com.google.protobuf.ByteString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.tron.common.utils.StringUtil;
 import org.tron.core.ChainBaseManager;
 import org.tron.core.capsule.TransactionRetCapsule;
 import org.tron.core.exception.BadItemException;
@@ -16,6 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -89,8 +92,35 @@ public class ScanInternalTransactionServlet extends RateLimiterServlet{
         String callerAddress = Hex.toHexString(internalTransaction.getCallerAddress().toByteArray());
         String toAddress = Hex.toHexString(internalTransaction.getTransferToAddress().toByteArray());
 
-        fileWriter.write(String.format("%s\t%s\t%d\t%s\t%d\t%s\t%s\n", time, contractAddress, blockNumber, txId, internalTransactionIndex,
-                callerAddress, toAddress));
+        List<Protocol.InternalTransaction.CallValueInfo> callValueInfoList = internalTransaction.getCallValueInfoList();
+
+        long balance = getBalance(callValueInfoList);
+        String trc10Info = getTrc10Info(callValueInfoList);
+
+        fileWriter.write(String.format("%s\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%s\n", time, contractAddress, blockNumber, txId, internalTransactionIndex,
+                callerAddress, toAddress, balance, trc10Info));
         fileWriter.flush();
+    }
+
+    private String getTrc10Info(List<Protocol.InternalTransaction.CallValueInfo> callValueInfoList) {
+        List<String> result = new ArrayList<>();
+        for (Protocol.InternalTransaction.CallValueInfo callValueInfo : callValueInfoList) {
+            if (!StringUtils.isEmpty(callValueInfo.getTokenId())) {
+                result.add(callValueInfo.getTokenId() + ":" + callValueInfo.getCallValue());
+            }
+        }
+        if (result.size() == 0) {
+            return "";
+        }
+        return String.join(",", result);
+    }
+
+    private long getBalance(List<Protocol.InternalTransaction.CallValueInfo> callValueInfoList) {
+        for (Protocol.InternalTransaction.CallValueInfo callValueInfo : callValueInfoList) {
+            if (StringUtils.isEmpty(callValueInfo.getTokenId())) {
+                return callValueInfo.getCallValue();
+            }
+        }
+        return 0;
     }
 }
