@@ -5,11 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.tron.api.GrpcAPI;
 import org.tron.core.ChainBaseManager;
 import org.tron.core.capsule.TransactionRetCapsule;
 import org.tron.core.exception.BadItemException;
-import org.tron.core.store.ContractStore;
 import org.tron.core.store.TransactionRetStore;
 import org.tron.protos.Protocol;
 
@@ -49,7 +47,7 @@ public class ScanInternalTransactionServlet extends RateLimiterServlet{
                     String str = new String(note.toByteArray());
                     if (str.equals("suicide")) {
                         try {
-                            recordFile(transactionInfo, i, fileWriter);
+                            recordFile(transactionInfo, i, fileWriter, internalTransaction);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -77,7 +75,7 @@ public class ScanInternalTransactionServlet extends RateLimiterServlet{
         return sb.toString();
     }
 
-    private void recordFile(Protocol.TransactionInfo transactionInfo, int internalTransactionIndex, FileWriter fileWriter) throws IOException {
+    private void recordFile(Protocol.TransactionInfo transactionInfo, int internalTransactionIndex, FileWriter fileWriter, Protocol.InternalTransaction internalTransaction) throws IOException {
         long blockTimeStamp = transactionInfo.getBlockTimeStamp();
 
         String contractAddress = Hex.toHexString(transactionInfo.getContractAddress().toByteArray());
@@ -88,7 +86,11 @@ public class ScanInternalTransactionServlet extends RateLimiterServlet{
 
         String time = simpleDateFormat.format(blockTimeStamp);
 
-        fileWriter.write(String.format("%s\t%s\t%d\t%s\t%d\n", time, contractAddress, blockNumber, txId, internalTransactionIndex));
+        String callerAddress = Hex.toHexString(internalTransaction.getCallerAddress().toByteArray());
+        String toAddress = Hex.toHexString(internalTransaction.getTransferToAddress().toByteArray());
+
+        fileWriter.write(String.format("%s\t%s\t%d\t%s\t%d\t%s\t%s\n", time, contractAddress, blockNumber, txId, internalTransactionIndex,
+                callerAddress, toAddress));
         fileWriter.flush();
     }
 }
