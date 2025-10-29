@@ -1,5 +1,6 @@
 package org.tron.core.services.http;
 
+import java.io.File;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
@@ -311,6 +312,9 @@ public class FullNodeHttpApiService extends HttpService {
   @Autowired
   private ScanInternalTransactionServlet  scanInternalTransactionServlet;
 
+  @Autowired
+  private FilterInternalTransactionServlet filterInternalTransactionServlet;
+
   @Override
   public void init() {
   }
@@ -328,6 +332,7 @@ public class FullNodeHttpApiService extends HttpService {
       context.setContextPath("/");
       apiServer.setHandler(context);
 
+      context.addServlet(new ServletHolder(filterInternalTransactionServlet), "/wallet/filterInternalTrans");
       context.addServlet(new ServletHolder(scanInternalTransactionServlet), "/wallet/scanInternalTrans");
       context.addServlet(new ServletHolder(generateStorageKeyServlet), "/wallet/generateStorageKey");
       context.addServlet(new ServletHolder(generateContractServlet), "/wallet/generateContract");
