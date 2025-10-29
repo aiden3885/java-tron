@@ -39,10 +39,9 @@ public class FilterInternalTransactionServlet extends InternalTransServlet {
         Scanner sc = new Scanner(fileReader);
         IRevokingDB revokingDB = chainBaseManager.getTransactionRetStore().getRevokingDB();
         while (sc.hasNextLine()) {
-            String str = sc.next();
+            String str = sc.nextLine();
             logger.info(str);
             String[] split = str.trim().split("\t");
-            logger.info(String.format("%d", split.length));
             Long blockNumber = Long.parseLong(split[0]);
             logger.info("blockNumber is " + blockNumber);
             String trxs =split[1];
