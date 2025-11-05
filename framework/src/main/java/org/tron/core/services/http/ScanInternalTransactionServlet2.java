@@ -44,14 +44,17 @@ public class ScanInternalTransactionServlet2 extends InternalTransServlet {
                 throw new RuntimeException(e);
             }
             Protocol.TransactionRet transactionRet = transactionRetCapsule.getInstance();
+
             long blockNumber = transactionRet.getBlockNumber();
+            logger.info("scan block " + blockNumber);
             if (blockNumber < beginBlock) {
                 return;
             }
             List<Protocol.TransactionInfo> transactioninfoList = transactionRet.getTransactioninfoList();
             for (Protocol.TransactionInfo transactionInfo : transactioninfoList) {
-                int i = 0;
+                int i = -1;
                 for (Protocol.InternalTransaction internalTransaction : transactionInfo.getInternalTransactionsList()) {
+                    i++;
                     String note = new String(internalTransaction.getNote().toByteArray());
                     if (note.equals("suicide")) {
                         String callerAddress = Hex.toHexString(internalTransaction.getCallerAddress().toByteArray());
