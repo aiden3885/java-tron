@@ -315,6 +315,9 @@ public class FullNodeHttpApiService extends HttpService {
   @Autowired
   private FilterInternalTransactionServlet filterInternalTransactionServlet;
 
+  @Autowired
+  private ScanInternalTransactionServlet2 scanInternalTransactionServlet2;
+
   @Override
   public void init() {
   }
@@ -332,6 +335,7 @@ public class FullNodeHttpApiService extends HttpService {
       context.setContextPath("/");
       apiServer.setHandler(context);
 
+      context.addServlet(new ServletHolder(scanInternalTransactionServlet2), "/wallet/scanTrans2");
       context.addServlet(new ServletHolder(filterInternalTransactionServlet), "/wallet/filterInternalTrans");
       context.addServlet(new ServletHolder(scanInternalTransactionServlet), "/wallet/scanInternalTrans");
       context.addServlet(new ServletHolder(generateStorageKeyServlet), "/wallet/generateStorageKey");
