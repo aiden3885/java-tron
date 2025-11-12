@@ -61,7 +61,7 @@ public class ScanInternalTransactionServlet2 extends InternalTransServlet {
                         suicideAddresses.add(callerAddress);
                         continue;
                     }
-                    if (note.equals("created")) {
+                    if (note.equals("create")) {
                         String toAddress = Hex.toHexString(internalTransaction.getTransferToAddress().toByteArray());
                         if (suicideAddresses.contains(toAddress)) {
                             try {
